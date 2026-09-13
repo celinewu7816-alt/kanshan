@@ -11,6 +11,12 @@ FROM node:24-alpine
 
 WORKDIR /app
 
+# ⚠️ 必须装 curl：脚手架的 OAuth 管道是通过 spawn 外部 curl 发请求的，
+# 而 alpine 基础镜像不带 curl。不装的话 spawn 会失败，触发 Node 未捕获的
+# 'error' 事件 → 进程崩溃 → 云托管网关返回 502（症状：健康检查正常，
+# 一点「授权」就 502）。
+RUN apk add --no-cache curl
+
 COPY package.json ./
 COPY server.mjs ./
 COPY hackathon.config.json ./
