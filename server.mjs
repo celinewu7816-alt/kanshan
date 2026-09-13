@@ -26,7 +26,7 @@ function redirect(response, location) { response.writeHead(302, { Location: loca
 const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${config.host}:${config.port}`);
   try {
-    if (request.method === 'GET' && url.pathname === '/api/health') return json(response, 200, { ok: true, project: config.projectName, oauthEnabled: true });
+    if (request.method === 'GET' && url.pathname === '/api/health') return json(response, 200, { ok: true, project: config.projectName, oauthEnabled: true, revision: 'r3-no-curl-fetch-8s' });
     if (request.method === 'GET' && url.pathname === '/api/oauth/status') return json(response, 200, { ok: true, ...(await oauth.status(request, response)) });
     if (request.method === 'GET' && url.pathname === '/api/oauth/start') {
       try { return redirect(response, await oauth.start(request, response)); }
