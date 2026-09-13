@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "projectName": "看山",
+  "projectSlug": "看山",
+  "oauth": {
+    "enabled": true,
+    "appId": "452",
+    "redirectUri": null,
+    "credentialService": "zhihu-hackathon:看山:c7741e8d46",
+    "credentialAccount": "oauth-app-key"
+  },
+  "host": "127.0.0.1",
+  "port": 4173
+}

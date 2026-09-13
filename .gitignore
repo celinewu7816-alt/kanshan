@@ -1,0 +1,10 @@
+# 运行时产物
+node_modules/
+*.log
+
+# 官方 skill 的本地副本（不属于作品代码，CloudBase 构建也不需要）
+.codex/
+
+# 系统垃圾
+.DS_Store
+Thumbs.db
