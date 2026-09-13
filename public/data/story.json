@@ -1,5 +1,5 @@
 {
-  "_note": "全部字段来自真实抓取：收藏时间/赞数来自 用户数据 API（近期收藏），'现在'来自 知乎搜索 API（按 AuthorSignature 精确过滤）。未见任何编造内容。",
+  "_note": "全部字段来自真实抓取。'你认识的人'的时间/赞数来自用户数据API（近期收藏），'现在'来自知乎搜索API（按AuthorSignature精确过滤）。'你可能想认识的人'来自用收藏内容作锚点的知乎搜索，并已排除已收藏/关注的作者。未见任何编造内容。",
   "_generated_at": "2026-09-13",
   "_account": "报名账号（demo 主角）",
 
@@ -11,87 +11,168 @@
     ]
   },
 
+  "room": {
+    "image": "/room.jpg",
+    "ratio": 1.8333
+  },
+
   "summary": [
-    "敲了 4 扇门，2 扇还开着。",
-    "你上一次收藏，是 2025 年 10 月。"
+    "这次带回来 8 张明信片。",
+    "4 张来自你认识的人，4 张来自你可能想认识的人。"
   ],
 
-  "visits": [
+  "groups": [
     {
-      "name": "东风",
-      "urlToken": "zhu-zhu-zhu-39-17-58",
-      "headline": "做有现代眼光的中国人",
-      "relation": "你 2021 年 11 月收藏了 TA 讲作文那篇",
-      "line": "五年了，还在写作文。",
-      "then": {
-        "title": "高中作文写不出深度怎么办？",
-        "date": "2021-11-06",
-        "likes": 58570,
-        "url": "https://www.zhihu.com/answer/1867267590"
-      },
-      "now": {
-        "title": "有哪些格调很高的高考作文万能句?",
-        "date": "2026-02-21",
-        "authority": "4",
-        "likes": 8628,
-        "url": "https://www.zhihu.com/question/265353821/answer/1864881212"
-      },
-      "verdict": "同一件事写了五年。而且现在看他的人，比当年还多。",
-      "invite": "你好。我 2021 年收藏了你那篇《高中作文写不出深度怎么办》，那年我高三。\n今天看到你还在更作文的内容，想跟你说一声：谢谢，那篇我读过好几遍。"
+      "id": "known",
+      "label": "你认识的人",
+      "note": "你收藏过、关注过的人，他们后来怎么样了",
+      "cards": [
+        {
+          "name": "东风",
+          "urlToken": "zhu-zhu-zhu-39-17-58",
+          "headline": "做有现代眼光的中国人",
+          "basis": "你 2021 年 11 月收藏了 TA 讲作文那篇",
+          "line": "五年了，还在写作文。",
+          "then": {
+            "title": "高中作文写不出深度怎么办？",
+            "date": "2021-11-06",
+            "likes": 58570,
+            "url": "https://www.zhihu.com/answer/1867267590"
+          },
+          "now": {
+            "title": "有哪些格调很高的高考作文万能句?",
+            "date": "2026-02-21",
+            "authority": "4",
+            "likes": 8628,
+            "url": "https://www.zhihu.com/question/265353821/answer/1864881212"
+          },
+          "verdict": "同一件事写了五年。而且现在看他的人，比当年还多。",
+          "invite": "你好。我 2021 年收藏了你那篇《高中作文写不出深度怎么办》，那年我高三。\n今天看到你还在更作文的内容，想跟你说一声：谢谢，那篇我读过好几遍。"
+        },
+        {
+          "name": "本舒",
+          "urlToken": "zhu-feng-1-35",
+          "headline": "公众号：种一个月亮",
+          "basis": "你 2021 年 4 月收藏了 TA 写的暗恋文案",
+          "line": "还在。只是不写文案了。",
+          "then": {
+            "title": "有没有一些不明显的暗恋文案？",
+            "date": "2021-04-17",
+            "likes": 65384,
+            "url": "https://www.zhihu.com/answer/1566275029"
+          },
+          "now": {
+            "title": "有没有适合女生的酒精味不浓且度数较高的小甜酒推荐?",
+            "date": "2024-05-30",
+            "authority": "4",
+            "likes": 1,
+            "url": "https://www.zhihu.com/question/460398214/answer/3508915783"
+          },
+          "verdict": "从「暗恋文案」换到了「小甜酒测评」。间隔三年，人还在。",
+          "invite": "你好。我 2021 年收藏过你写的暗恋文案，那阵子反复看了很多遍。\n后来发现你在写小甜酒了 —— 世界变化挺大的，祝你一切都好。"
+        },
+        {
+          "name": "平行线会相交",
+          "urlToken": "katherine-72-73",
+          "headline": "博1控制理论",
+          "basis": "你收藏了 TA 六篇数学分析习题，还关注了 TA",
+          "line": "我敲不开这扇门。",
+          "then": {
+            "title": "数学分析 第二册 伍胜健 习题十二",
+            "date": "2025-04-02",
+            "likes": 241,
+            "url": "https://zhuanlan.zhihu.com/p/521492791"
+          },
+          "now": null,
+          "verdict": "搜索召回 0 条。",
+          "caveat": "我只能说「搜不到 TA 后来的内容」—— 无法区分「停更」和「搜索索引没覆盖」，所以不替你下结论。"
+        },
+        {
+          "name": "独漉",
+          "urlToken": "wan-jia-yin-60",
+          "headline": "徒然抛却人间热闹，却未透彻生之冷清。",
+          "basis": "你 2021 年 11 月收藏了 TA 讲语文 130+ 那篇",
+          "line": "这扇门也没开。",
+          "then": {
+            "title": "高中语文如何达到130+？",
+            "date": "2021-11-06",
+            "likes": 24401,
+            "url": "https://www.zhihu.com/answer/190992779"
+          },
+          "now": null,
+          "verdict": "搜索召回 0 条。",
+          "caveat": "同上：只说明「搜不到」，不说明别的。"
+        }
+      ]
     },
+
     {
-      "name": "本舒",
-      "urlToken": "zhu-feng-1-35",
-      "headline": "公众号：种一个月亮",
-      "relation": "你 2021 年 4 月收藏了 TA 写的暗恋文案",
-      "line": "还在。只是不写文案了。",
-      "then": {
-        "title": "有没有一些不明显的暗恋文案？",
-        "date": "2021-04-17",
-        "likes": 65384,
-        "url": "https://www.zhihu.com/answer/1566275029"
-      },
-      "now": {
-        "title": "有没有适合女生的酒精味不浓且度数较高的小甜酒推荐?",
-        "date": "2024-05-30",
-        "authority": "4",
-        "likes": 1,
-        "url": "https://www.zhihu.com/question/460398214/answer/3508915783"
-      },
-      "verdict": "从「暗恋文案」换到了「小甜酒测评」。间隔三年，人还在。",
-      "invite": "你好。我 2021 年收藏过你写的暗恋文案，那阵子反复看了很多遍。\n后来发现你在写小甜酒了 —— 世界变化挺大的，祝你一切都好。"
-    },
-    {
-      "name": "平行线会相交",
-      "urlToken": "katherine-72-73",
-      "headline": "博1控制理论",
-      "relation": "你收藏了 TA 六篇数学分析习题，还关注了 TA",
-      "line": "我敲不开这扇门。",
-      "then": {
-        "title": "数学分析 第二册 伍胜健 习题十二",
-        "date": "2025-04-02",
-        "likes": 241,
-        "url": "https://zhuanlan.zhihu.com/p/521492791"
-      },
-      "now": null,
-      "verdict": "搜索召回 0 条。",
-      "caveat": "我只能说「搜不到 TA 后来的内容」—— 无法区分「停更」和「搜索索引没覆盖」，所以不替你下结论。"
-    },
-    {
-      "name": "独漉",
-      "urlToken": "wan-jia-yin-60",
-      "headline": "徒然抛却人间热闹，却未透彻生之冷清。",
-      "relation": "你 2021 年 11 月收藏了 TA 讲语文 130+ 那篇",
-      "line": "这扇门也没开。",
-      "then": {
-        "title": "高中语文如何达到130+？",
-        "date": "2021-11-06",
-        "likes": 24401,
-        "url": "https://www.zhihu.com/answer/190992779"
-      },
-      "now": null,
-      "verdict": "搜索召回 0 条。",
-      "caveat": "同上：只说明「搜不到」，不说明别的。"
+      "id": "similar",
+      "label": "你可能想认识的人",
+      "note": "你没关注过，但和你在读同一批东西的人",
+      "anchorNote": "这一组不是按「谁收藏得像你」找的 —— 那种数据拿不到。而是用你收藏过的**具体内容**作锚点去搜索，找到在同一个地方留下批注的人。",
+      "cards": [
+        {
+          "name": "icez",
+          "urlToken": "icez-31",
+          "headline": "",
+          "basis": "你收藏了伍胜健《数学分析》习题十二、十三、十四",
+          "line": "同一本书。TA 做到第十五章了。",
+          "now": {
+            "title": "伍胜健《数学分析》习题十五详解",
+            "date": "2024-07-09",
+            "authority": "4",
+            "likes": 120,
+            "url": "https://zhuanlan.zhihu.com/p/596106667"
+          },
+          "invite": "你好。我在做伍胜健那本《数学分析》的习题，做到第十二章了。\n看到你写了第十五章的详解，帮了大忙，想跟你说声谢谢。"
+        },
+        {
+          "name": "一一天然呆",
+          "urlToken": "01childbear",
+          "headline": "",
+          "basis": "同上 —— 你们在啃同一本教材",
+          "line": "也在啃那本书。第二章。",
+          "now": {
+            "title": "伍胜健数学分析第二章习题答案解析",
+            "date": "2024-08-08",
+            "authority": "4",
+            "likes": 22,
+            "url": "https://zhuanlan.zhihu.com/p/713504253"
+          },
+          "invite": "你好。我也在用伍胜健那本《数学分析》，第二章卡了一阵子。\n你的答案解析写得很清楚，谢谢。"
+        },
+        {
+          "name": "周树人v吃鱼",
+          "urlToken": "zhou-shu-ren-vchi-cu",
+          "headline": "",
+          "basis": "你收藏了《上下极限的一些应用》和《2.3 序列上极限和下极限》",
+          "line": "上下极限，TA 也琢磨过。",
+          "now": {
+            "title": "怎样理解和使用数列上下极限?",
+            "date": "2022-10-06",
+            "authority": "4",
+            "likes": 45,
+            "url": "https://www.zhihu.com/question/26081077/answer/2704178854"
+          },
+          "invite": "你好。我最近在啃数列的上下极限，收藏了两篇讲这个的。\n看到你那条回答，讲「怎么用」那部分对我挺有用，谢谢。"
+        },
+        {
+          "name": "Pandora Eartha",
+          "urlToken": "PandoraEartha",
+          "headline": "",
+          "basis": "你收藏了《怎么把一个向量组中所有极大线性无关组求出来？》",
+          "line": "你问的那个问题，TA 写过一篇 154 赞的。",
+          "now": {
+            "title": "【线性代数】求极大线性无关组和基础解系",
+            "date": "2023-10-18",
+            "authority": "4",
+            "likes": 154,
+            "url": "https://zhuanlan.zhihu.com/p/579911801"
+          },
+          "invite": "你好。我在学线性代数，之前收藏了一篇讲「求所有极大线性无关组」的回答。\n最近看到你那篇，把基础解系一起讲了，很清楚，谢谢。"
+        }
+      ]
     }
   ]
 }

@@ -299,8 +299,125 @@ body {
 .state.error { color: var(--red); }
 .panel-actions { display: flex; gap: 8px; margin-top: 18px; }
 
+/* ── 屋子 ────────────────────────────────────────────── */
+.room {
+  position: relative;
+  width: 100%;
+  max-width: 660px;
+  margin: 0 auto;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.room-bg { width: 100%; display: block; }
+
+/* 看山站在屋里。位置用「双脚位置」的百分比表示（left / top），
+   这样调位置时对着 ?grid=1 的网格报数字就行。 */
+.room .pet {
+  position: absolute;
+  left: 50%;
+  top: 76%;
+  width: 17%;
+  height: auto;
+  transform: translate(-50%, -100%);
+}
+
+/* 出门：走到门边、变小、淡出 */
+.room .pet.walking {
+  animation: walk-out 1.6s cubic-bezier(0.5, 0, 0.9, 0.6) forwards;
+}
+@keyframes walk-out {
+  from { left: 50%; top: 76%; width: 17%; opacity: 1; }
+  to   { left: 79%; top: 69%; width: 10%; opacity: 0; }
+}
+
+/* 回来：从门边走进来 */
+.room .pet.entering {
+  animation: walk-in 1.3s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@keyframes walk-in {
+  from { left: 79%; top: 69%; width: 10%; opacity: 0; }
+  to   { left: 50%; top: 76%; width: 17%; opacity: 1; }
+}
+
+/* 空屋子那几秒：只剩屋子和一行字，这是旅行青蛙的味道 */
+.room-empty-note {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+  font-size: 15px;
+  letter-spacing: 0.14em;
+}
+
+/* 调试网格：纯 CSS 渐变画出来的，不用内联样式（CSP 会拦内联样式）。
+   在网址后加 ?grid=1 打开，用来读坐标。 */
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(to right, rgba(255, 0, 0, 0.3) 0 1px, transparent 1px 10%),
+    repeating-linear-gradient(to bottom, rgba(255, 0, 0, 0.3) 0 1px, transparent 1px 10%);
+}
+.grid-hint {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 5px 9px;
+  border-radius: 7px;
+}
+
+/* ── 分组标签 ────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+.tab {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tab.on { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
+.group-note {
+  color: var(--ink-quiet);
+  font-size: 12.5px;
+  line-height: 1.7;
+  text-align: center;
+  margin: 0 0 14px;
+  padding: 0 8px;
+}
+
+/* 推荐依据 */
+.postcard .basis {
+  margin-top: 14px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--ink-quiet);
+  background: var(--soft);
+  border-radius: 9px;
+  padding: 8px 11px;
+}
+.postcard .basis b { color: var(--text-secondary); font-weight: 600; }
+
 @media (max-width: 480px) {
   .stage { padding: 40px 18px 96px; gap: 24px; }
   .pet { width: 164px; height: 164px; }
   .say { font-size: 17px; }
+  .room { border-radius: 14px; }
 }

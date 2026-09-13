@@ -1,16 +1,18 @@
 /* ==========================================================================
    看山 · 会饿的知乎代理  —  前端
    设计原则：
-     1) 一屏一态，不滚动。看山说一句话，其余藏进「看看」。
-     2) 所有数据来自 /data/story.json（离线用 zhihu-cli 抓真实数据生成）。
-     3) CSP 是 style-src 'self' / script-src 'self' → 不用内联 style，也不用内联事件。
+     1) 一屏一态、不滚动。看山在屋子里，出门，回来，说话。
+     2) 数据全部来自 /data/story.json（离线用 zhihu-cli 抓真实数据生成）。
+     3) CSP 是 style-src 'self' / script-src 'self'：
+        不用内联 style 属性，也不用内联事件处理器，全部走 addEventListener。
+     4) 网址后加 ?grid=1 会叠一层 10% 调试网格，用来报坐标调看山站位。
    ========================================================================== */
 
-const PET = {
+const PET_IMG = {
   sleepy:  '/ks-sleepy.gif',
-  greet:   '/ks-greet.gif',
   standby: '/ks-standby.gif',
   wander:  '/ks-wander.gif',
+  greet:   '/ks-greet.gif',
 };
 
 const stage = document.getElementById('stage');
@@ -21,9 +23,12 @@ const panel = document.getElementById('panel');
 const panelSummary = document.getElementById('panel-summary');
 const panelGrid = document.getElementById('panel-grid');
 
+const showGrid = new URLSearchParams(window.location.search).get('grid') === '1';
+
 let story = null;
 let oauth = { status: null, profile: null };
 let view = 'loading';
+let groupIndex = 0;
 let cardIndex = 0;
 let openDetail = false;
 let invited = new Set(JSON.parse(localStorage.getItem('kanshan.invited') || '[]'));
@@ -36,15 +41,11 @@ function el(tag, className, text) {
   return node;
 }
 
-function pet(kind) {
-  const img = el('img', `pet ${kind}`);
-  img.src = PET[kind === 'leave' ? 'greet' : kind === 'back' ? 'standby' : kind];
-  img.alt = '看山';
-  img.addEventListener('error', () => {
-    const box = el('div', 'pet-fallback');
-    img.replaceWith(box);
-  });
-  return img;
+function button(label, className, onClick) {
+  const btn = el('button', className, label);
+  btn.type = 'button';
+  btn.addEventListener('click', onClick);
+  return btn;
 }
 
 function say(lines, hush) {
@@ -54,21 +55,38 @@ function say(lines, hush) {
   return box;
 }
 
-function button(label, className, onClick) {
-  const btn = el('button', className, label);
-  btn.type = 'button';
-  btn.addEventListener('click', onClick);
-  return btn;
-}
+function clearStage() { stage.replaceChildren(); }
 
-function clearStage() {
-  stage.replaceChildren();
+/* ---------- 屋子 ---------- */
+// petKind: 'sleepy' | 'standby' | 'wander' | null（null = 屋子空着）
+function room(petKind, extraClass, note) {
+  const box = el('div', 'room');
+
+  const bg = el('img', 'room-bg');
+  bg.src = story?.room?.image || '/room.jpg';
+  bg.alt = '';
+  box.append(bg);
+
+  if (petKind) {
+    const pet = el('img', `pet ${extraClass || ''}`);
+    pet.src = PET_IMG[petKind];
+    pet.alt = '看山';
+    pet.addEventListener('error', () => pet.remove());
+    box.append(pet);
+  }
+  if (note) box.append(el('div', 'room-empty-note', note));
+
+  if (showGrid) {
+    box.append(el('div', 'grid-overlay'));
+    box.append(el('div', 'grid-hint', '调试网格：每格 10%。看山双脚默认在 (50%, 76%)'));
+  }
+  return box;
 }
 
 /* ---------- 视图：加载中 ---------- */
 function renderLoading() {
   clearStage();
-  stage.append(pet('sleepy'), el('p', 'caption', '……'));
+  stage.append(room('sleepy'), el('p', 'caption', '……'));
 }
 
 /* ---------- 视图：还没登录 ---------- */
@@ -76,20 +94,17 @@ function renderGate() {
   clearStage();
   const ready = Boolean(oauth.status?.callbackConfigured);
 
-  stage.append(pet('sleepy'));
-  stage.append(say(
-    ['我还不认识你。'],
-    ready ? '用知乎账号登录，我才翻得到你的收藏。' : '我还住在你电脑里，出不了门。',
-  ));
+  stage.append(room('sleepy'));
+  stage.append(say(['我还不认识你。'], ready ? '用知乎账号登录，我才翻得到你的收藏。' : '我还出不了门。'));
 
-  if (ready) {
-    stage.append(button('用知乎账号登录', 'btn', () => window.location.assign('/api/oauth/start')));
-  } else {
+  const login = button('用知乎账号登录', 'btn', () => {
+    if (ready) window.location.assign('/api/oauth/start');
+  });
+  if (!ready) {
+    login.disabled = true;
     stage.append(say([], '部署到公网、配好回调地址之后，这里才会亮起来。'));
-    const btn = button('用知乎账号登录', 'btn', () => {});
-    btn.disabled = true;
-    stage.append(btn);
   }
+  stage.append(login);
 
   if (oauth.status?.error) {
     stage.append(el('p', 'caption', `上次有点问题：${oauth.status.error.message}`));
@@ -100,100 +115,109 @@ function renderGate() {
 function renderHome() {
   clearStage();
   const name = oauth.profile?.name;
-
-  stage.append(pet('sleepy'));
-  stage.append(say(
-    story?.pet?.wake ?? ['我认得你。'],
-    name ? `${name}，我翻了你的收藏。` : null,
-  ));
+  stage.append(room('standby'));
+  stage.append(say(story?.pet?.wake ?? ['我认得你。'], name ? `${name}，我翻了你的收藏。` : null));
   stage.append(button('让它出门', 'btn', goOut));
 }
 
 /* ---------- 视图：出门中 ---------- */
 function renderOut() {
   clearStage();
-  const walking = pet('leave');
-  stage.append(walking);
+  stage.append(room('wander', 'walking'));
   stage.append(el('p', 'caption', '出门了'));
-
-  const dots = el('p', 'ellipsis');
-  for (let i = 0; i < 3; i += 1) dots.append(el('i', null, '·'));
-  stage.append(dots);
 
   window.setTimeout(() => {
     clearStage();
-    const back = pet('back');
-    stage.append(back);
-    const count = story?.visits?.length ?? 0;
-    stage.append(el('p', 'caption', `带回来 ${count} 张明信片`));
-    window.setTimeout(() => { view = 'cards'; render(); }, 1100);
+    stage.append(room(null, null, '屋子里空着'));
+    window.setTimeout(() => { view = 'cards'; render(); }, 2000);
   }, 1500);
 }
 
-/* ---------- 视图：明信片 ---------- */
+/* ---------- 视图：明信片（两组） ---------- */
+function currentGroup() { return story?.groups?.[groupIndex]; }
+
 function renderCards() {
   clearStage();
-  const visits = story?.visits ?? [];
-  const visit = visits[cardIndex];
-  if (!visit) return renderDone();
+  const group = currentGroup();
+  const cards = group?.cards ?? [];
+  const card = cards[cardIndex];
+  if (!card) return renderDone();
 
-  stage.append(pet('standby'));
+  stage.append(room('standby'));
+
+  if ((story?.groups?.length ?? 0) > 1) stage.append(tabs());
+  if (group?.note) stage.append(el('p', 'group-note', group.note));
 
   const deck = el('div', 'deck');
-  deck.append(postcard(visit));
-  deck.append(nav(visits.length));
+  deck.append(postcard(card));
+  deck.append(nav(cards.length));
   stage.append(deck);
-
-  if (cardIndex === visits.length - 1) {
-    stage.append(el('p', 'caption', story?.summary?.[0] ?? ''));
-  }
 }
 
-function postcard(visit) {
-  const card = el('article', 'postcard');
+function tabs() {
+  const box = el('div', 'tabs');
+  story.groups.forEach((group, index) => {
+    box.append(button(group.label, `tab${index === groupIndex ? ' on' : ''}`, () => {
+      groupIndex = index;
+      cardIndex = 0;
+      openDetail = false;
+      render();
+    }));
+  });
+  return box;
+}
+
+function postcard(card) {
+  const node = el('article', 'postcard');
 
   /* 抬头 */
   const face = el('div', 'face');
-  face.append(el('div', 'mark', visit.name.slice(0, 1)));
+  face.append(el('div', 'mark', card.name.slice(0, 1)));
   const who = el('div');
   const nameLine = el('div', 'name');
-  const link = el('a', null, visit.name);
-  link.href = `https://www.zhihu.com/people/${visit.urlToken}`;
+  const link = el('a', null, card.name);
+  link.href = `https://www.zhihu.com/people/${card.urlToken}`;
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
   nameLine.append(link);
   who.append(nameLine);
-  who.append(el('div', 'note', visit.headline || ''));
+  if (card.headline) who.append(el('div', 'note', card.headline));
   face.append(who);
-  card.append(face);
+  node.append(face);
 
   /* 看山的一句话 —— 卡片唯一的正文 */
-  card.append(el('div', 'line', `「${visit.line}」`));
-  card.append(el('div', 'rel', visit.relation));
+  node.append(el('div', 'line', `「${card.line}」`));
+
+  /* 推荐依据（为什么给你看这张） */
+  if (card.basis) {
+    const basis = el('div', 'basis');
+    basis.append(el('b', null, '为什么给你看这张'));
+    basis.append(el('div', null, card.basis));
+    node.append(basis);
+  }
 
   /* 操作 */
   const acts = el('div', 'acts');
-  acts.append(button(openDetail ? '收起来' : '看看', 'btn quiet', () => {
+  acts.append(button(openDetail ? '收起来' : '展开', 'btn quiet', () => {
     openDetail = !openDetail;
     render();
   }));
 
-  const isInvited = invited.has(visit.urlToken);
+  const isInvited = invited.has(card.urlToken);
   acts.append(button(isInvited ? '已经记下了' : '想认识', 'btn', () => {
-    invited.add(visit.urlToken);
+    invited.add(card.urlToken);
     localStorage.setItem('kanshan.invited', JSON.stringify([...invited]));
     render();
   }));
-  card.append(acts);
+  node.append(acts);
 
-  /* 展开区 */
-  if (openDetail) card.append(detail(visit));
-  if (isInvited) card.append(letter(visit));
+  if (openDetail) node.append(detail(card));
+  if (isInvited) node.append(letter(card));
 
-  return card;
+  return node;
 }
 
-function detail(visit) {
+function detail(card) {
   const box = el('div', 'detail');
   const dl = el('dl');
 
@@ -202,100 +226,90 @@ function detail(visit) {
     const dd = el('dd');
     dd.append(node);
     dl.append(dd);
-    return dd;
   };
 
-  /* 当年 */
-  const then = el('div');
-  const thenLink = el('a', null, visit.then.title);
-  thenLink.href = visit.then.url;
-  thenLink.target = '_blank';
-  thenLink.rel = 'noopener noreferrer';
-  then.append(thenLink);
-  then.append(el('div', 'meta', `${visit.then.date} 收藏 · ${Number(visit.then.likes).toLocaleString('zh-CN')} 赞`));
-  addRow('当年', then);
+  if (card.then) {
+    const then = el('div');
+    const a = el('a', null, card.then.title);
+    a.href = card.then.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    then.append(a);
+    then.append(el('div', 'meta', `${card.then.date} 收藏 · ${Number(card.then.likes).toLocaleString('zh-CN')} 赞`));
+    addRow('当年', then);
+  }
 
-  /* 现在 */
   const now = el('div');
-  if (visit.now) {
-    const nowLink = el('a', null, visit.now.title);
-    nowLink.href = visit.now.url;
-    nowLink.target = '_blank';
-    nowLink.rel = 'noopener noreferrer';
-    now.append(nowLink);
-    const meta = [visit.now.date, visit.now.authority ? `权威等级 ${visit.now.authority}` : null,
-                  visit.now.likes != null ? `${Number(visit.now.likes).toLocaleString('zh-CN')} 赞` : null]
+  if (card.now) {
+    const a = el('a', null, card.now.title);
+    a.href = card.now.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    now.append(a);
+    const meta = [card.now.date,
+                  card.now.authority ? `权威等级 ${card.now.authority}` : null,
+                  card.now.likes != null ? `${Number(card.now.likes).toLocaleString('zh-CN')} 赞` : null]
       .filter(Boolean).join(' · ');
     now.append(el('div', 'meta', meta));
   } else {
     now.append(el('span', null, '搜索召回 0 条'));
   }
-  addRow('现在', now);
+  addRow(card.then ? '现在' : 'TA 写过', now);
 
   box.append(dl);
 
-  if (visit.verdict) {
+  if (card.verdict) {
     const v = el('div', 'verdict');
     v.append(el('b', null, '看山的判断'));
-    v.append(el('div', null, visit.verdict));
+    v.append(el('div', null, card.verdict));
     box.append(v);
   }
-  if (visit.caveat) box.append(el('div', 'caveat', `※ ${visit.caveat}`));
+  if (card.caveat) box.append(el('div', 'caveat', `※ ${card.caveat}`));
   return box;
 }
 
-function letter(visit) {
+function letter(card) {
   const box = el('div', 'detail');
-  box.append(el('div', 'line', `「信我压在门口了。没有敲门 —— 你说你不好意思。」`));
-  const pre = el('pre', 'meta', visit.invite || '');
-  pre.classList.add('pre');
-  box.append(pre);
-  box.append(button('复制这封信', 'btn quiet', async (event) => {
-    try {
-      await navigator.clipboard.writeText(visit.invite || '');
-      event.target.textContent = '已复制';
-    } catch {
-      event.target.textContent = '请手动选中复制';
-    }
-  }));
+  box.append(el('div', 'line', '「信我压在门口了。没有敲门 —— 你说你不好意思。」'));
+  if (card.invite) {
+    box.append(el('pre', 'pre', card.invite));
+    box.append(button('复制这封信', 'btn quiet', async (event) => {
+      try {
+        await navigator.clipboard.writeText(card.invite);
+        event.target.textContent = '已复制';
+      } catch {
+        event.target.textContent = '请手动选中复制';
+      }
+    }));
+  }
   return box;
 }
 
 function nav(total) {
-  const nav = el('div', 'deck-nav');
-  nav.append(button('←', 'ghost', () => {
+  const bar = el('div', 'deck-nav');
+  bar.append(button('←', 'ghost', () => {
     cardIndex = (cardIndex - 1 + total) % total; openDetail = false; render();
   }));
   const dots = el('div', 'dots');
   for (let i = 0; i < total; i += 1) {
-    const dot = button('', `dot${i === cardIndex ? ' on' : ''}`, () => {
+    dots.append(button('', `dot${i === cardIndex ? ' on' : ''}`, () => {
       cardIndex = i; openDetail = false; render();
-    });
-    dots.append(dot);
+    }));
   }
-  nav.append(dots);
-  nav.append(button('→', 'ghost', () => {
+  bar.append(dots);
+  bar.append(button('→', 'ghost', () => {
     cardIndex = (cardIndex + 1) % total; openDetail = false; render();
   }));
-  return nav;
+  return bar;
 }
 
 function renderDone() {
   clearStage();
-  stage.append(pet('standby'));
+  stage.append(room('standby'));
   stage.append(say(story?.summary ?? ['看完了。']));
   stage.append(button('再看一遍', 'btn', () => {
-    cardIndex = 0; openDetail = false; view = 'cards'; render();
+    groupIndex = 0; cardIndex = 0; openDetail = false; view = 'cards'; render();
   }));
 }
 
-/* ---------- 出门 ---------- */
-function goOut() {
-  view = 'out';
-  render();
-}
+function goOut() { view = 'out'; render(); }
 
-/* ---------- 渲染分发 ---------- */
 function render() {
   if (view === 'loading') return renderLoading();
   if (view === 'out') return renderOut();
@@ -312,8 +326,7 @@ function card(definition) {
   node.dataset.id = definition.id;
   const row = el('div', 'row');
   row.append(el('span', null, 'OAuth 用户数据'));
-  const state = el('b', 'state', '未运行');
-  row.append(state);
+  row.append(el('b', 'state', '未运行'));
   node.append(row);
   node.append(el('h3', null, definition.name));
   node.append(el('code', null, definition.endpoint));
@@ -340,7 +353,9 @@ function renderResult(result) {
 async function runAll() {
   panelSummary.textContent = '正在请求…';
   try {
-    const response = await fetch('/api/oauth/run-all', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const response = await fetch('/api/oauth/run-all', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+    });
     const payload = await response.json();
     if (!response.ok || payload.ok === false) throw new Error(payload.error?.message || '请求失败');
     payload.results.forEach(renderResult);
@@ -375,8 +390,7 @@ async function boot() {
     if (status.interfaces) status.interfaces.forEach(card);
 
     if (status.authorized) {
-      const name = status.profile?.name || '已授权的知乎账号';
-      whoBtn.textContent = name;
+      whoBtn.textContent = status.profile?.name || '已授权的知乎账号';
       whoBtn.hidden = false;
       panelToggle.hidden = false;
       dock.hidden = false;
