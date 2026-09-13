@@ -170,7 +170,8 @@ body {
   align-items: center;
   gap: 12px;
   padding-bottom: 16px;
-  border-bottom: 1px dashed var(--line);
+  padding-right: 52px; /* 给右上角邮票让位 */
+  border-bottom: 1px dashed rgba(140, 118, 82, 0.3);
 }
 .postcard .mark {
   flex: 0 0 auto;
@@ -190,9 +191,32 @@ body {
 .postcard .note { color: var(--ink-quiet); font-size: 12px; }
 
 .postcard .line {
-  margin: 20px 0 6px;
+  font-family: Georgia, "Songti SC", "SimSun", "Source Han Serif SC", serif;
+  margin: 18px 0 6px;
   font-size: 18px;
-  line-height: 1.8;
+  line-height: 1.9;
+}
+
+/* 右上角的邮票 */
+.postcard .stamp {
+  position: absolute;
+  right: 13px;
+  top: 11px;
+  width: 46px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border: 1px dashed rgba(140, 118, 82, 0.6);
+  border-radius: 3px;
+  background-image: repeating-linear-gradient(
+    45deg, rgba(200, 180, 140, 0.18) 0 4px, transparent 4px 9px);
+}
+.postcard .stamp span {
+  font-size: 10px;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  color: rgba(120, 100, 70, 0.92);
 }
 .postcard .when { color: var(--ink-quiet); font-size: 12px; text-align: right; }
 .postcard .rel { color: var(--ink-quiet); font-size: 12.5px; margin-top: 10px; }
@@ -237,14 +261,31 @@ body {
 .detail .verdict b { color: var(--blue); font-size: 11px; letter-spacing: 0.08em; display: block; margin-bottom: 4px; }
 .detail .caveat { color: var(--ink-quiet); font-size: 12px; margin-top: 10px; }
 
-/* 翻页 */
+/* 翻页控件压在屋子画面底部（不接在界面下面） */
 .deck-nav {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-top: 18px;
+  gap: 14px;
 }
+.deck-nav .ghost {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  border-radius: 999px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 30px;
+}
+.deck-nav .ghost:hover { background: rgba(0, 0, 0, 0.48); }
+.deck-nav .dot { background: rgba(255, 255, 255, 0.55); }
+.deck-nav .dot.on { background: #fff; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.16); }
 .dots { display: flex; gap: 7px; }
 .dot {
   width: 7px; height: 7px; border-radius: 50%;
@@ -312,32 +353,91 @@ body {
 .room-bg { width: 100%; display: block; }
 
 /* 看山站在屋里。位置用「双脚位置」的百分比表示（left / top），
-   这样调位置时对着 ?grid=1 的网格报数字就行。 */
+   对着 ?grid=1 的网格就能报出数字来调。
+   站位 (30%, 80%)，门在 (80%, 80%) —— 两点 y 相同，说明是同一深度
+   横向走，所以走路动画里不改变大小（缩放会显得像往远处走了）。 */
 .room .pet {
   position: absolute;
-  left: 50%;
-  top: 76%;
+  left: 30%;
+  top: 80%;
   width: 17%;
   height: auto;
   transform: translate(-50%, -100%);
 }
 
-/* 出门：走到门边、变小、淡出 */
+/* 出门：横走到门口，靠近门时淡出 */
 .room .pet.walking {
-  animation: walk-out 1.6s cubic-bezier(0.5, 0, 0.9, 0.6) forwards;
+  animation: walk-out 1.7s cubic-bezier(0.45, 0, 0.85, 0.55) forwards;
 }
 @keyframes walk-out {
-  from { left: 50%; top: 76%; width: 17%; opacity: 1; }
-  to   { left: 79%; top: 69%; width: 10%; opacity: 0; }
+  from { left: 30%; top: 80%; opacity: 1; }
+  62%  { left: 62%; top: 80%; opacity: 1; }
+  to   { left: 80%; top: 80%; opacity: 0; }
 }
 
-/* 回来：从门边走进来 */
+/* 回来：在门口现身，然后一路横走进屋（不是半路才淡入） */
 .room .pet.entering {
-  animation: walk-in 1.3s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation: walk-in 1.5s cubic-bezier(0.25, 0.9, 0.35, 1) both;
 }
 @keyframes walk-in {
-  from { left: 79%; top: 69%; width: 10%; opacity: 0; }
-  to   { left: 50%; top: 76%; width: 17%; opacity: 1; }
+  from { left: 80%; top: 80%; opacity: 0; }
+  10%  { left: 76%; top: 80%; opacity: 1; }
+  to   { left: 30%; top: 80%; opacity: 1; }
+}
+
+/* ── 场景：屋子 + 浮在上面的信笺 ───────────────────────── */
+.scene {
+  position: relative;
+  width: 100%;
+  max-width: 660px;
+  margin: 0 auto;
+}
+/* 信笺层：绝对定位浮在屋子画面上，不被 .room 的 overflow 裁掉，
+   所以展开后的内容可以自然溢出到画面外。 */
+.postcard-layer {
+  position: absolute;
+  right: 3%;
+  top: 5%;
+  width: 56%;
+  pointer-events: none;
+}
+.postcard-layer > * { pointer-events: auto; }
+
+/* ── 信笺（明信片） ──────────────────────────────────── */
+.postcard {
+  position: relative;
+  padding: 20px 20px 18px 26px;
+  text-align: left;
+  color: #3a332a;
+  /* 米色信笺纸 + 极淡的横格线 */
+  background-color: #fffdf5;
+  background-image:
+    repeating-linear-gradient(to bottom, rgba(150, 130, 95, 0.10) 0 1px, transparent 1px 26px);
+  border: 1px solid rgba(140, 118, 82, 0.22);
+  /* 左上右下压角，像被手捏过的纸 */
+  border-radius: 3px 16px 4px 14px;
+  box-shadow:
+    0 14px 34px rgba(28, 20, 6, 0.26),
+    0 3px 8px rgba(28, 20, 6, 0.14);
+  transform: rotate(-1.1deg);
+  animation: card-pop 0.52s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+/* 弹出的感觉：从缩小+歪斜+下方，过冲到略大，再落到原位 */
+@keyframes card-pop {
+  0%   { opacity: 0; transform: scale(0.7) rotate(-8deg) translateY(18px); }
+  60%  { opacity: 1; transform: scale(1.035) rotate(-0.2deg) translateY(0); }
+  100% { opacity: 1; transform: scale(1) rotate(-1.1deg) translateY(0); }
+}
+/* 左边的装订/票根边 */
+.postcard::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 14px;
+  bottom: 14px;
+  width: 1px;
+  background: repeating-linear-gradient(
+    to bottom, rgba(150, 130, 95, 0.45) 0 5px, transparent 5px 10px);
 }
 
 /* 空屋子那几秒：只剩屋子和一行字，这是旅行青蛙的味道 */

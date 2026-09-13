@@ -81,7 +81,7 @@ function room(petKind, extraClass, note) {
 
   if (showGrid) {
     box.append(el('div', 'grid-overlay'));
-    box.append(el('div', 'grid-hint', '调试网格：每格 10%。看山双脚默认在 (50%, 76%)'));
+    box.append(el('div', 'grid-hint', '调试网格：每格 10%。看山站着 (30%, 80%)，门在 (80%, 80%)'));
   }
   return box;
 }
@@ -117,6 +117,9 @@ function renderGate() {
 /* ---------- 视图：在家 ---------- */
 function renderHome() {
   clearStage();
+  if (demoMode && !oauth.status?.authorized) {
+    stage.append(el('p', 'caption', '预览模式 · 下面是示例账号的真实收藏'));
+  }
   const name = oauth.profile?.name;
   stage.append(room('standby'));
   stage.append(say(story?.pet?.wake ?? ['我认得你。'], name ? `${name}，我翻了你的收藏。` : null));
@@ -146,18 +149,23 @@ function renderCards() {
   const card = cards[cardIndex];
   if (!card) return renderDone();
 
-  stage.append(room('standby'));
+  if ((story?.groups?.length ?? 0) > 1) stage.append(tabs());
 
+  /* 信笺浮在屋子画面上（不是接在界面下面滚动） */
+  const scene = el('div', 'scene');
+  scene.append(room('standby'));
+
+  const layer = el('div', 'postcard-layer');
+  layer.append(postcard(card));
+  scene.append(layer);
+  scene.append(nav(cards.length));
+
+  stage.append(scene);
+
+  if (group?.note) stage.append(el('p', 'group-note', group.note));
   if (demoMode && !oauth.status?.authorized) {
     stage.append(el('p', 'caption', '预览模式 · 下面是示例账号的真实收藏'));
   }
-  if ((story?.groups?.length ?? 0) > 1) stage.append(tabs());
-  if (group?.note) stage.append(el('p', 'group-note', group.note));
-
-  const deck = el('div', 'deck');
-  deck.append(postcard(card));
-  deck.append(nav(cards.length));
-  stage.append(deck);
 }
 
 function tabs() {
@@ -176,9 +184,16 @@ function tabs() {
 function postcard(card) {
   const node = el('article', 'postcard');
 
+  /* 右上角邮票：盖的是这条内容的时间（月-日） */
+  const stampText = String(card.now?.date || card.then?.date || '').slice(5);
+  if (stampText) {
+    const stamp = el('div', 'stamp');
+    stamp.append(el('span', null, stampText));
+    node.append(stamp);
+  }
+
   /* 抬头 */
   const face = el('div', 'face');
-  face.append(el('div', 'mark', card.name.slice(0, 1)));
   const who = el('div');
   const nameLine = el('div', 'name');
   const link = el('a', null, card.name);
@@ -320,7 +335,7 @@ function render() {
   if (view === 'loading') return renderLoading();
   if (view === 'out') return renderOut();
   if (view === 'cards') return renderCards();
-  if (oauth.status?.authorized) return renderHome();
+  if (oauth.status?.authorized || demoMode) return renderHome();
   return renderGate();
 }
 
@@ -402,7 +417,7 @@ async function boot() {
       dock.hidden = false;
       await runAll();
     }
-    view = demoMode ? 'cards' : 'home';
+    view = 'home';
     render();
   } catch (error) {
     clearStage();
