@@ -47,7 +47,9 @@ function el(tag, className, text) {
 function button(label, className, onClick) {
   const btn = el('button', className, label);
   btn.type = 'button';
-  btn.addEventListener('click', onClick);
+  // 统一阻止冒泡：信笺整张卡是可点的（轻点翻下一张），
+  // 里面的按钮和链接不该把点击传到卡片上。
+  btn.addEventListener('click', (event) => { event.stopPropagation(); onClick(event); });
   return btn;
 }
 
@@ -151,17 +153,25 @@ function renderCards() {
 
   if ((story?.groups?.length ?? 0) > 1) stage.append(tabs());
 
-  /* 信笺浮在屋子画面上（不是接在界面下面滚动） */
+  /* 信笺浮在屋子画面上。后面垫两张叠牌，暗示"还有下一张"。 */
   const scene = el('div', 'scene');
   scene.append(room('standby'));
 
   const layer = el('div', 'postcard-layer');
+  if (openDetail) layer.classList.add('wide');
+  if (cards.length > 1) {
+    layer.append(el('div', 'ghost-card g2'));
+    layer.append(el('div', 'ghost-card g1'));
+  }
   layer.append(postcard(card));
   scene.append(layer);
   scene.append(nav(cards.length));
 
   stage.append(scene);
 
+  if (cards.length > 1 && !openDetail) {
+    stage.append(el('p', 'caption', '轻点信笺，看下一张'));
+  }
   if (group?.note) stage.append(el('p', 'group-note', group.note));
   if (demoMode && !oauth.status?.authorized) {
     stage.append(el('p', 'caption', '预览模式 · 下面是示例账号的真实收藏'));
@@ -183,6 +193,17 @@ function tabs() {
 
 function postcard(card) {
   const node = el('article', 'postcard');
+  const total = currentGroup()?.cards?.length ?? 1;
+
+  if (openDetail) node.classList.add('expanded');
+  if (total > 1 && !openDetail) {
+    node.classList.add('can-flip');
+    node.addEventListener('click', () => {
+      cardIndex = (cardIndex + 1) % total;
+      openDetail = false;
+      render();
+    });
+  }
 
   /* 右上角邮票：盖的是这条内容的时间（月-日） */
   const stampText = String(card.now?.date || card.then?.date || '').slice(5);
@@ -200,6 +221,7 @@ function postcard(card) {
   link.href = `https://www.zhihu.com/people/${card.urlToken}`;
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
+  link.addEventListener('click', (event) => event.stopPropagation());
   nameLine.append(link);
   who.append(nameLine);
   if (card.headline) who.append(el('div', 'note', card.headline));
@@ -240,29 +262,34 @@ function postcard(card) {
 
 function detail(card) {
   const box = el('div', 'detail');
-  const dl = el('dl');
+  const cols = el('div', 'cols');
 
-  const addRow = (label, node) => {
-    dl.append(el('dt', null, label));
-    const dd = el('dd');
-    dd.append(node);
-    dl.append(dd);
+  const col = (label, child) => {
+    const c = el('div', 'col');
+    c.append(el('div', 'col-label', label));
+    c.append(child);
+    return c;
+  };
+
+  const linkTo = (title, url) => {
+    const a = el('a', null, title);
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.addEventListener('click', (event) => event.stopPropagation());
+    return a;
   };
 
   if (card.then) {
     const then = el('div');
-    const a = el('a', null, card.then.title);
-    a.href = card.then.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
-    then.append(a);
+    then.append(linkTo(card.then.title, card.then.url));
     then.append(el('div', 'meta', `${card.then.date} 收藏 · ${Number(card.then.likes).toLocaleString('zh-CN')} 赞`));
-    addRow('当年', then);
+    cols.append(col('当年', then));
   }
 
   const now = el('div');
   if (card.now) {
-    const a = el('a', null, card.now.title);
-    a.href = card.now.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
-    now.append(a);
+    now.append(linkTo(card.now.title, card.now.url));
     const meta = [card.now.date,
                   card.now.authority ? `权威等级 ${card.now.authority}` : null,
                   card.now.likes != null ? `${Number(card.now.likes).toLocaleString('zh-CN')} 赞` : null]
@@ -271,16 +298,11 @@ function detail(card) {
   } else {
     now.append(el('span', null, '搜索召回 0 条'));
   }
-  addRow(card.then ? '现在' : 'TA 写过', now);
+  cols.append(col(card.then ? '后来' : 'TA 写过', now));
 
-  box.append(dl);
+  if (card.verdict) cols.append(col('看山的判断', el('div', null, card.verdict)));
 
-  if (card.verdict) {
-    const v = el('div', 'verdict');
-    v.append(el('b', null, '看山的判断'));
-    v.append(el('div', null, card.verdict));
-    box.append(v);
-  }
+  box.append(cols);
   if (card.caveat) box.append(el('div', 'caveat', `※ ${card.caveat}`));
   return box;
 }
@@ -302,21 +324,14 @@ function letter(card) {
   return box;
 }
 
+/* 翻页：只有进度点，不用箭头 */
 function nav(total) {
   const bar = el('div', 'deck-nav');
-  bar.append(button('←', 'ghost', () => {
-    cardIndex = (cardIndex - 1 + total) % total; openDetail = false; render();
-  }));
-  const dots = el('div', 'dots');
   for (let i = 0; i < total; i += 1) {
-    dots.append(button('', `dot${i === cardIndex ? ' on' : ''}`, () => {
+    bar.append(button('', `dot${i === cardIndex ? ' on' : ''}`, () => {
       cardIndex = i; openDetail = false; render();
     }));
   }
-  bar.append(dots);
-  bar.append(button('→', 'ghost', () => {
-    cardIndex = (cardIndex + 1) % total; openDetail = false; render();
-  }));
   return bar;
 }
 

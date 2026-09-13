@@ -261,7 +261,29 @@ body {
 .detail .verdict b { color: var(--blue); font-size: 11px; letter-spacing: 0.08em; display: block; margin-bottom: 4px; }
 .detail .caveat { color: var(--ink-quiet); font-size: 12px; margin-top: 10px; }
 
-/* 翻页控件压在屋子画面底部（不接在界面下面） */
+/* 展开后不再重播弹出动画（否则一展开又弹一次，很吵） */
+.postcard.expanded { animation: none; cursor: default; }
+/* 未展开时可以轻点翻下一张 */
+.postcard.can-flip { cursor: pointer; }
+
+/* 展开区：横向排成几栏，控制高度，不超出画面 */
+.detail .cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+}
+.detail .col-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: rgba(120, 100, 70, 0.85);
+  margin-bottom: 4px;
+}
+.detail .col { font-size: 13.5px; line-height: 1.65; }
+.detail .col a { color: #6b5a3e; text-decoration: none; border-bottom: 1px solid rgba(107, 90, 62, 0.3); }
+.detail .col a:hover { color: var(--blue); border-bottom-color: var(--blue); }
+.detail .col .meta { font-size: 12px; color: rgba(120, 100, 70, 0.8); margin-top: 3px; }
+
+/* 翻页：只有进度点，没有箭头。轻点信笺也能翻。 */
 .deck-nav {
   position: absolute;
   left: 0;
@@ -270,21 +292,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 8px;
 }
-.deck-nav .ghost {
-  color: #fff;
-  background: rgba(0, 0, 0, 0.3);
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
-  border-radius: 999px;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  font-size: 15px;
-  line-height: 30px;
-}
-.deck-nav .ghost:hover { background: rgba(0, 0, 0, 0.48); }
-.deck-nav .dot { background: rgba(255, 255, 255, 0.55); }
+.deck-nav .dot { background: rgba(255, 255, 255, 0.5); width: 8px; height: 8px; }
 .deck-nav .dot.on { background: #fff; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.16); }
 .dots { display: flex; gap: 7px; }
 .dot {
@@ -396,12 +406,32 @@ body {
    所以展开后的内容可以自然溢出到画面外。 */
 .postcard-layer {
   position: absolute;
+  left: 41%;
   right: 3%;
   top: 5%;
-  width: 56%;
   pointer-events: none;
+  transition: left 0.42s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 .postcard-layer > * { pointer-events: auto; }
+/* 展开时向左侧铺开（横向），不是往下长 —— 保证不超出屋子画面 */
+.postcard-layer.wide { left: 3%; }
+.postcard-layer.wide > .ghost-card { pointer-events: none; }
+
+/* 信笺下面露出的两张叠牌，暗示"后面还有" */
+.ghost-card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  border-radius: 3px 16px 4px 14px;
+  background: #fffdf5;
+  border: 1px solid rgba(140, 118, 82, 0.18);
+  box-shadow: 0 8px 20px rgba(28, 20, 6, 0.14);
+}
+.ghost-card.g1 { transform: rotate(1.7deg) translateY(7px) scale(0.984); }
+.ghost-card.g2 { transform: rotate(-0.5deg) translateY(13px) scale(0.968); }
 
 /* ── 信笺（明信片） ──────────────────────────────────── */
 .postcard {
