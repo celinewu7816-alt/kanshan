@@ -24,6 +24,9 @@ const panelSummary = document.getElementById('panel-summary');
 const panelGrid = document.getElementById('panel-grid');
 
 const showGrid = new URLSearchParams(window.location.search).get('grid') === '1';
+// ?demo=1 预览模式：跳过登录直接看明信片。用于本地调视觉、录演示视频，
+// 以及没有知乎账号的访客也能看到产品长什么样（会标注是示例账号的收藏）。
+const demoMode = new URLSearchParams(window.location.search).get('demo') === '1';
 
 let story = null;
 let oauth = { status: null, profile: null };
@@ -145,6 +148,9 @@ function renderCards() {
 
   stage.append(room('standby'));
 
+  if (demoMode && !oauth.status?.authorized) {
+    stage.append(el('p', 'caption', '预览模式 · 下面是示例账号的真实收藏'));
+  }
   if ((story?.groups?.length ?? 0) > 1) stage.append(tabs());
   if (group?.note) stage.append(el('p', 'group-note', group.note));
 
@@ -396,7 +402,7 @@ async function boot() {
       dock.hidden = false;
       await runAll();
     }
-    view = 'home';
+    view = demoMode ? 'cards' : 'home';
     render();
   } catch (error) {
     clearStage();
