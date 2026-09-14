@@ -143,17 +143,26 @@ function renderOut() {
 }
 
 /* ---------- 视图：信笺（两组） ---------- */
-// 每一趟出门只带回来「每组各 PER_TRIP 封」；下一趟带还没带过的那批，
-// 全部带过之后就回到第一批重新开始。
+// 每一趟出门都带回来「每组各 PER_TRIP 封」；批次每趟往后挪 PER_TRIP 张，
+// 走到末尾就绕回开头 —— 于是每趟恰好是「一封新的 + 上一趟的前两封」。
 const PER_TRIP = 3;
 let trip = -1;                       // 第几趟（每次 goOut +1；-1 = 还没出过门）
+
+// 某一组这一趟带回来的卡片：从 (trip * PER_TRIP) 起连拿 PER_TRIP 张，绕圈取
+function tripCardsOf(group) {
+  const all = group?.cards ?? [];
+  if (all.length <= PER_TRIP) return all;          // 不够一批就全带上，不重复
+  const start = (trip * PER_TRIP) % all.length;
+  const cards = [];
+  for (let i = 0; i < PER_TRIP; i += 1) cards.push(all[(start + i) % all.length]);
+  return cards;
+}
 
 // 这一趟每一组带回来的卡片；这一批没有卡片的组直接不列出来
 function tripGroups() {
   const list = [];
   for (const group of story?.groups ?? []) {
-    const start = trip * PER_TRIP;
-    const cards = (group.cards ?? []).slice(start, start + PER_TRIP);
+    const cards = tripCardsOf(group);
     if (cards.length) list.push({ group, cards });
   }
   return list;
@@ -422,10 +431,8 @@ function tripSummary() {
 }
 
 function goOut() {
-  // 每出一趟门换一批信：下一趟带还没带过的；全部带过就回到第一批
+  // 每出一趟门换一批信：一趟一组各 PER_TRIP 封，绕完一圈接着从头转
   trip += 1;
-  const maxLen = Math.max(0, ...(story?.groups ?? []).map((g) => (g.cards ?? []).length));
-  if (trip * PER_TRIP >= maxLen) trip = 0;
   screen = 'out';
   render();
 }
