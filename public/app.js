@@ -143,19 +143,37 @@ function renderOut() {
 }
 
 /* ---------- 视图：信笺（两组） ---------- */
-function currentGroup() { return story?.groups?.[groupIndex]; }
+// 每一趟出门只带回来「每组各 PER_TRIP 封」；下一趟带还没带过的那批，
+// 全部带过之后就回到第一批重新开始。
+const PER_TRIP = 3;
+let trip = -1;                       // 第几趟（每次 goOut +1；-1 = 还没出过门）
+
+// 这一趟每一组带回来的卡片；这一批没有卡片的组直接不列出来
+function tripGroups() {
+  const list = [];
+  for (const group of story?.groups ?? []) {
+    const start = trip * PER_TRIP;
+    const cards = (group.cards ?? []).slice(start, start + PER_TRIP);
+    if (cards.length) list.push({ group, cards });
+  }
+  return list;
+}
+
+function currentTripCards() { return tripGroups()[groupIndex]?.cards ?? []; }
 
 function renderCards() {
   clearView();
-  const group = currentGroup();
-  const cards = group?.cards ?? [];
+  const list = tripGroups();
+  const entry = list[groupIndex];
+  if (!entry) return renderDone();
+  const cards = entry.cards;
   const card = cards[cardIndex];
   if (!card) return renderDone();
 
   paintRoom('standby');
 
   /* 分组标签压在画面顶部 */
-  if ((story?.groups?.length ?? 0) > 1) view.append(tabs());
+  if (list.length > 1) view.append(tabs());
 
   /* 信笺浮在画面上，后面垫两张叠牌暗示"还有下一张"。
      叠牌要和卡片同一个盒子，这样卡片长高时叠牌跟着走。 */
@@ -173,7 +191,7 @@ function renderCards() {
 
   /* 说明文字不再堆在画面底部，改成看山说的话（挂在它头顶的气泡里） */
   const bubble = el('div', 'pet-bubble');
-  if (group?.note) bubble.append(el('p', null, group.note));
+  if (entry.group.note) bubble.append(el('p', null, entry.group.note));
   if (cards.length > 1 && !open) bubble.append(el('p', 'small', '轻点信笺，翻下一张'));
   if (demoMode && !oauth.status?.authorized) bubble.append(el('p', 'small', '预览模式 · 示例账号的真实收藏'));
   // 气泡里如实回报进展：写好了几封、寄出了几封
@@ -194,8 +212,8 @@ function renderCards() {
 
 function tabs() {
   const box = el('div', 'tabs');
-  story.groups.forEach((group, index) => {
-    box.append(button(group.label, `tab${index === groupIndex ? ' on' : ''}`, () => {
+  tripGroups().forEach((entry, index) => {
+    box.append(button(entry.group.label, `tab${index === groupIndex ? ' on' : ''}`, () => {
       groupIndex = index;
       cardIndex = 0;
       open = null;
@@ -207,7 +225,7 @@ function tabs() {
 
 function postcard(card) {
   const node = el('article', 'postcard');
-  const total = currentGroup()?.cards?.length ?? 1;
+  const total = Math.max(1, currentTripCards().length);
 
   if (open) node.classList.add('expanded');
   if (total > 1 && !open) {
@@ -389,13 +407,28 @@ function nav(total) {
 function renderDone() {
   clearView();
   paintRoom('standby');
-  view.append(say(story?.summary ?? ['看完了。']));
+  view.append(say(tripSummary()));
   view.append(button('再让它出门', 'btn', () => {
     groupIndex = 0; cardIndex = 0; open = null; goOut();
   }));
 }
 
-function goOut() { screen = 'out'; render(); }
+// 这一趟带回来几张、分别来自哪一组
+function tripSummary() {
+  const list = tripGroups();
+  const total = list.reduce((sum, entry) => sum + entry.cards.length, 0);
+  const parts = list.map((entry) => `${entry.cards.length} 张来自${entry.group.label}`);
+  return [`这次带回来 ${total} 张明信片。`, `${parts.join('，')}。`];
+}
+
+function goOut() {
+  // 每出一趟门换一批信：下一趟带还没带过的；全部带过就回到第一批
+  trip += 1;
+  const maxLen = Math.max(0, ...(story?.groups ?? []).map((g) => (g.cards ?? []).length));
+  if (trip * PER_TRIP >= maxLen) trip = 0;
+  screen = 'out';
+  render();
+}
 
 function render() {
   if (screen === 'loading') return renderLoading();
