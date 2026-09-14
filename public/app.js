@@ -124,14 +124,8 @@ function renderGate() {
 /* ---------- 视图：在家 ---------- */
 function renderHome() {
   clearView();
-  const name = oauth.profile?.name;
-
+  // 进门这一屏只留「让它出门」，看山的开场白和 demo 提示都撤掉
   paintRoom('standby');
-  view.append(say(story?.pet?.wake ?? ['我认得你。'], name ? `${name}，我翻了你的收藏。` : null));
-
-  if (demoMode && !oauth.status?.authorized) {
-    view.append(el('div', 'view-notes', '预览模式 · 下面是示例账号的真实收藏'));
-  }
   view.append(button('让它出门', 'btn', goOut));
 }
 
@@ -175,6 +169,7 @@ function renderCards() {
   layer.append(stack);
   view.append(layer);
   view.append(nav(cards.length));
+  view.append(againDock());
 
   /* 说明文字不再堆在画面底部，改成看山说的话（挂在它头顶的气泡里） */
   const bubble = el('div', 'pet-bubble');
@@ -371,6 +366,15 @@ function letter(card) {
   return box;
 }
 
+/* 收完信之后随时可以再派它出门 —— 不重开页面也有下一步 */
+function againDock() {
+  const box = el('div', 'again-dock');
+  box.append(button('让它再出门一次', 'ghost', () => {
+    groupIndex = 0; cardIndex = 0; open = null; goOut();
+  }));
+  return box;
+}
+
 /* 翻页：只有进度点，不用箭头 */
 function nav(total) {
   const bar = el('div', 'deck-nav');
@@ -386,8 +390,8 @@ function renderDone() {
   clearView();
   paintRoom('standby');
   view.append(say(story?.summary ?? ['看完了。']));
-  view.append(button('再看一遍', 'btn', () => {
-    groupIndex = 0; cardIndex = 0; open = null; screen = 'cards'; render();
+  view.append(button('再让它出门', 'btn', () => {
+    groupIndex = 0; cardIndex = 0; open = null; goOut();
   }));
 }
 

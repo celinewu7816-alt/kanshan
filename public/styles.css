@@ -139,16 +139,17 @@ body {
   border: 0;
   border-radius: 999px;
   padding: 14px 32px;
-  background: var(--blue);
-  color: #fff;
+  /* 统一成暖墨色，跟房间图、信笺同一个色温（不再用知乎亮蓝） */
+  background: #6b5a3e;
+  color: #fffdf5;
   font: inherit;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 8px 22px rgba(23, 114, 246, 0.26);
+  box-shadow: 0 8px 22px rgba(107, 90, 62, 0.28);
   transition: transform 0.12s ease, box-shadow 0.2s ease;
   animation: fade-up 0.7s ease both;
 }
-.btn:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(23, 114, 246, 0.32); }
+.btn:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(107, 90, 62, 0.34); }
 .btn:active { transform: translateY(0); }
 .btn[disabled] { background: var(--soft); color: var(--ink-quiet); box-shadow: none; cursor: not-allowed; }
 
@@ -343,7 +344,7 @@ body {
   background: rgba(18, 24, 40, 0.16);
   border: 0; padding: 0; cursor: pointer;
 }
-.dot.on { background: var(--blue); }
+.dot.on { background: #6b5a3e; }
 
 /* ── 底部 ────────────────────────────────────────────── */
 .dock {
@@ -581,7 +582,7 @@ body {
   cursor: pointer;
   white-space: nowrap;
 }
-.tab.on { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
+.tab.on { background: #6b5a3e; border-color: #6b5a3e; color: #fffdf5; font-weight: 600; }
 .group-note {
   color: var(--ink-quiet);
   font-size: 12.5px;
@@ -673,9 +674,9 @@ body {
    说明文字不再堆在画面底部，改成看山说的话，挂在它头顶上方。 */
 .pet-bubble {
   position: absolute;
-  left: 4%;
+  left: 8%;
   bottom: 55%;
-  max-width: 36%;
+  max-width: 32%;
   padding: 11px 15px 13px;
   text-align: left;
   color: #3a332a;
@@ -708,6 +709,24 @@ body {
 
 /* 进度点压在画面最底部 */
 .deck-nav { bottom: 16px; }
+
+/* 「让它再出门一次」：压在最底部、进度点上方（收完信也有下一步） */
+.again-dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 38px;
+  display: flex;
+  justify-content: center;
+}
+.again-dock .ghost {
+  color: #fff;
+  background: rgba(16, 20, 26, 0.34);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+}
+.again-dock .ghost:hover { background: rgba(16, 20, 26, 0.52); color: #fff; }
 
 /* 登录名 / 运行记录：画面右上角的小药丸 */
 .dock {
