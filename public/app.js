@@ -266,8 +266,8 @@ function postcard(card) {
   }));
 
   const isInvited = invited.has(card.urlToken);
-  // 备好信的先用弱化样式（它是状态），再点一次才是"看那封信"
-  const inviteLabel = !isInvited ? '想认识' : (open === 'letter' ? '收起信' : '看那封信');
+  // 按钮始终是「想认识」：点开就是看信（信展开时变成「收起信」）
+  const inviteLabel = open === 'letter' ? '收起信' : '想认识';
   acts.append(button(inviteLabel, isInvited ? 'btn quiet' : 'btn', () => {
     if (!isInvited) {
       invited.add(card.urlToken);
