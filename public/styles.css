@@ -187,7 +187,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-bottom: 16px;
+  padding-bottom: 12px;
   padding-right: 52px; /* 给右上角邮票让位 */
   border-bottom: 1px dashed rgba(140, 118, 82, 0.3);
 }
@@ -210,9 +210,9 @@ body {
 
 .postcard .line {
   font-family: Georgia, "Songti SC", "SimSun", "Source Han Serif SC", serif;
-  margin: 18px 0 6px;
-  font-size: 18px;
-  line-height: 1.9;
+  margin: 13px 0 4px;
+  font-size: 16.5px;
+  line-height: 1.8;
 }
 
 /* 右上角的邮票 */
@@ -241,11 +241,11 @@ body {
 .pre {
   background: var(--soft);
   border-radius: 10px;
-  padding: 10px 12px;
-  margin: 12px 0;
+  padding: 9px 11px;
+  margin: 10px 0;
   font-family: inherit;
-  font-size: 13px;
-  line-height: 1.7;
+  font-size: 12.5px;
+  line-height: 1.65;
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--text-secondary);
@@ -255,20 +255,20 @@ body {
 .letter-acts {
   display: flex;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .postcard .acts {
   display: flex;
   gap: 10px;
-  margin-top: 18px;
-  padding-top: 16px;
+  margin-top: 13px;
+  padding-top: 12px;
   border-top: 1px dashed var(--line);
 }
 .postcard .acts .btn { padding: 9px 20px; font-size: 14px; box-shadow: none; animation: none; }
 .postcard .acts .btn.quiet { background: var(--soft); color: var(--text-secondary); }
 
-.detail { margin-top: 18px; border-top: 1px dashed var(--line); padding-top: 16px; }
+.detail { margin-top: 13px; border-top: 1px dashed var(--line); padding-top: 12px; }
 .detail dl { margin: 0; }
 .detail dt { color: var(--ink-quiet); font-size: 12px; margin-top: 14px; }
 .detail dt:first-child { margin-top: 0; }
@@ -284,7 +284,7 @@ body {
   font-size: 14px;
 }
 .detail .verdict b { color: var(--blue); font-size: 11px; letter-spacing: 0.08em; display: block; margin-bottom: 4px; }
-.detail .caveat { color: var(--ink-quiet); font-size: 12px; margin-top: 10px; }
+.detail .caveat { color: var(--ink-quiet); font-size: 11.5px; margin-top: 8px; }
 
 /* 展开后不再重播弹出动画（否则一展开又弹一次，很吵） */
 .postcard.expanded { animation: none; cursor: default; }
@@ -293,7 +293,7 @@ body {
 
 /* 展开区：竖着排（当年 → 后来 → 看山的判断），用分隔线断开 */
 .detail .cols { display: block; }
-.detail .col { padding: 10px 0; border-top: 1px dashed rgba(140, 118, 82, 0.28); }
+.detail .col { padding: 8px 0; border-top: 1px dashed rgba(140, 118, 82, 0.28); }
 .detail .col:first-child { border-top: 0; padding-top: 0; }
 .detail .col-label {
   font-size: 11px;
@@ -301,7 +301,7 @@ body {
   color: rgba(120, 100, 70, 0.85);
   margin-bottom: 4px;
 }
-.detail .col { font-size: 13.5px; line-height: 1.65; }
+.detail .col { font-size: 13px; line-height: 1.55; }
 .detail .col a { color: #6b5a3e; text-decoration: none; border-bottom: 1px solid rgba(107, 90, 62, 0.3); }
 .detail .col a:hover { color: var(--blue); border-bottom-color: var(--blue); }
 .detail .col .meta { font-size: 12px; color: rgba(120, 100, 70, 0.8); margin-top: 3px; }
@@ -426,13 +426,13 @@ body {
   margin: 0 auto;
 }
 /* 信笺层：给它明确的上下边界（top/bottom 同时定），所以无论怎么展开都
-   不可能超出屋子。展开时长高由卡片自己内部滚动承接。 */
+   不可能超出屋子。展开区的内容压得够紧，正常视口下不需要内部滚动。 */
 .postcard-layer {
   position: absolute;
   left: 41%;
   right: 3%;
-  top: 15%;
-  bottom: 11%;
+  top: 12%;
+  bottom: 8%;
   display: flex;
   align-items: flex-start;
   pointer-events: none;
@@ -446,7 +446,16 @@ body {
   max-height: 100%;
   display: flex;
 }
-.stack > .postcard { width: 100%; max-height: 100%; overflow: auto; }
+/* 兜底上限：正常视口下展开内容都在屋子之内、不会滚动；极小屏真溢出时也
+   不显示滚动条（仍可用滚轮/触控滑动），保证界面上永远看不到 scrollbar。 */
+.stack > .postcard {
+  width: 100%;
+  max-height: 100%;
+  overflow: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.stack > .postcard::-webkit-scrollbar { display: none; }
 
 /* 信笺下面露出的两张叠牌，暗示"后面还有" */
 .ghost-card {
@@ -467,7 +476,7 @@ body {
 /* ── 信笺（明信片） ──────────────────────────────────── */
 .postcard {
   position: relative;
-  padding: 20px 20px 18px 26px;
+  padding: 16px 18px 15px 24px;
   text-align: left;
   color: #3a332a;
   /* 米色信笺纸 + 极淡的横格线 */
@@ -566,13 +575,13 @@ body {
 
 /* 推荐依据 */
 .postcard .basis {
-  margin-top: 14px;
-  font-size: 12.5px;
-  line-height: 1.65;
+  margin-top: 11px;
+  font-size: 12px;
+  line-height: 1.6;
   color: var(--ink-quiet);
   background: var(--soft);
   border-radius: 9px;
-  padding: 8px 11px;
+  padding: 7px 10px;
 }
 .postcard .basis b { color: var(--text-secondary); font-weight: 600; }
 

@@ -36,7 +36,9 @@ let oauth = { status: null, profile: null };
 let screen = 'loading';                              // 当前是哪一屏
 let groupIndex = 0;
 let cardIndex = 0;
-let openDetail = false;
+// 信笺上展开的是哪一块：null（收起）| 'detail'（当年/后来）| 'letter'（邀请信）。
+// 两者互斥 —— 同时展开会叠得很高，撑破屋子。
+let open = null;
 // 两个集合分开记：invited = 看山已经替你写好邀请信（先给你看）；
 // sent = 你确认过、已经把信寄出去。演示环境里没有发布/私信接口，
 // 所以「寄出」只落在这个本地记录上 —— 这件事在信里与计划书中都如实写明。
@@ -177,7 +179,7 @@ function renderCards() {
   /* 说明文字不再堆在画面底部，改成看山说的话（挂在它头顶的气泡里） */
   const bubble = el('div', 'pet-bubble');
   if (group?.note) bubble.append(el('p', null, group.note));
-  if (cards.length > 1 && !openDetail) bubble.append(el('p', 'small', '轻点信笺，翻下一张'));
+  if (cards.length > 1 && !open) bubble.append(el('p', 'small', '轻点信笺，翻下一张'));
   if (demoMode && !oauth.status?.authorized) bubble.append(el('p', 'small', '预览模式 · 示例账号的真实收藏'));
   // 气泡里如实回报进展：写好了几封、寄出了几封
   if (sent.size > 0) {
@@ -201,7 +203,7 @@ function tabs() {
     box.append(button(group.label, `tab${index === groupIndex ? ' on' : ''}`, () => {
       groupIndex = index;
       cardIndex = 0;
-      openDetail = false;
+      open = null;
       render();
     }));
   });
@@ -212,12 +214,12 @@ function postcard(card) {
   const node = el('article', 'postcard');
   const total = currentGroup()?.cards?.length ?? 1;
 
-  if (openDetail) node.classList.add('expanded');
-  if (total > 1 && !openDetail) {
+  if (open) node.classList.add('expanded');
+  if (total > 1 && !open) {
     node.classList.add('can-flip');
     node.addEventListener('click', () => {
       cardIndex = (cardIndex + 1) % total;
-      openDetail = false;
+      open = null;
       render();
     });
   }
@@ -256,26 +258,32 @@ function postcard(card) {
     node.append(basis);
   }
 
-  /* 操作 */
+  /* 操作：展开与想认识互斥，同一时刻只展开一块 */
   const acts = el('div', 'acts');
-  acts.append(button(openDetail ? '收起来' : '展开', 'btn quiet', () => {
-    openDetail = !openDetail;
+  acts.append(button(open === 'detail' ? '收起来' : '展开', 'btn quiet', () => {
+    open = open === 'detail' ? null : 'detail';
     render();
   }));
 
   const isInvited = invited.has(card.urlToken);
-  // 读过信的用弱化样式：它是个状态，不该看起来还像可以点的按钮
-  acts.append(button(isInvited ? '信已备好' : '想认识', isInvited ? 'btn quiet' : 'btn', () => {
-    if (invited.has(card.urlToken)) return;
-    invited.add(card.urlToken);
-    localStorage.setItem('kanshan.invited', JSON.stringify([...invited]));
-    scrollCardToEnd = true;
+  // 备好信的先用弱化样式（它是状态），再点一次才是"看那封信"
+  const inviteLabel = !isInvited ? '想认识' : (open === 'letter' ? '收起信' : '看那封信');
+  acts.append(button(inviteLabel, isInvited ? 'btn quiet' : 'btn', () => {
+    if (!isInvited) {
+      invited.add(card.urlToken);
+      localStorage.setItem('kanshan.invited', JSON.stringify([...invited]));
+      open = 'letter';
+      scrollCardToEnd = true;
+      render();
+      return;
+    }
+    open = open === 'letter' ? null : 'letter';
     render();
   }));
   node.append(acts);
 
-  if (openDetail) node.append(detail(card));
-  if (isInvited) node.append(letter(card));
+  if (open === 'detail') node.append(detail(card));
+  if (isInvited && open === 'letter') node.append(letter(card));
 
   return node;
 }
@@ -368,7 +376,7 @@ function nav(total) {
   const bar = el('div', 'deck-nav');
   for (let i = 0; i < total; i += 1) {
     bar.append(button('', `dot${i === cardIndex ? ' on' : ''}`, () => {
-      cardIndex = i; openDetail = false; render();
+      cardIndex = i; open = null; render();
     }));
   }
   return bar;
@@ -379,7 +387,7 @@ function renderDone() {
   paintRoom('standby');
   view.append(say(story?.summary ?? ['看完了。']));
   view.append(button('再看一遍', 'btn', () => {
-    groupIndex = 0; cardIndex = 0; openDetail = false; screen = 'cards'; render();
+    groupIndex = 0; cardIndex = 0; open = null; screen = 'cards'; render();
   }));
 }
 
