@@ -195,7 +195,6 @@ function renderCards() {
   stack.append(postcard(card));
   layer.append(stack);
   view.append(layer);
-  view.append(nav(cards.length));
   view.append(againDock());
 
   /* 说明文字不再堆在画面底部，改成看山说的话（挂在它头顶的气泡里） */
@@ -400,17 +399,6 @@ function againDock() {
     groupIndex = 0; cardIndex = 0; open = null; goOut();
   }));
   return box;
-}
-
-/* 翻页：只有进度点，不用箭头 */
-function nav(total) {
-  const bar = el('div', 'deck-nav');
-  for (let i = 0; i < total; i += 1) {
-    bar.append(button('', `dot${i === cardIndex ? ' on' : ''}`, () => {
-      cardIndex = i; open = null; render();
-    }));
-  }
-  return bar;
 }
 
 function renderDone() {
