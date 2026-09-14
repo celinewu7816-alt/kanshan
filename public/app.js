@@ -37,12 +37,13 @@ let screen = 'loading';                              // 当前是哪一屏
 let groupIndex = 0;
 let cardIndex = 0;
 let openDetail = false;
+// 两个集合分开记：invited = 看山已经替你写好邀请信（先给你看）；
+// sent = 你确认过、已经把信寄出去。演示环境里没有发布/私信接口，
+// 所以「寄出」只落在这个本地记录上 —— 这件事在信里与计划书中都如实写明。
 let invited = new Set(JSON.parse(localStorage.getItem('kanshan.invited') || '[]'));
-// 点过「想认识」的信，要等下一次出门才真的带过去 —— 用这个标记区分
-// 「记下了」和「已经送到了」，避免同一屏里出现两句自相矛盾的话。
-let lettersDelivered = false;
-// 点了「想认识」之后，新出现的信在卡片底部 —— 而卡片是会内部滚动的，
-// 不滚到底就看不见，反馈就"消失"了。用这个标记让这次渲染后自动滚到底。
+let sent = new Set(JSON.parse(localStorage.getItem('kanshan.sent') || '[]'));
+// 点完之后新出现的信在卡片底部，而卡片是会内部滚动的 —— 不滚到底就看不见，
+// 反馈就"消失"了。用这个标记让这次渲染后自动滚到底。
 let scrollCardToEnd = false;
 
 /* ---------- 小工具 ---------- */
@@ -141,8 +142,6 @@ function renderOut() {
   window.setTimeout(() => {
     clearView();
     paintRoom(null, null, '屋子里空着');
-    // 这一趟走完，之前记下的信才算送出去了
-    lettersDelivered = true;
     window.setTimeout(() => { screen = 'cards'; render(); }, 2000);
   }, 1500);
 }
@@ -180,11 +179,11 @@ function renderCards() {
   if (group?.note) bubble.append(el('p', null, group.note));
   if (cards.length > 1 && !openDetail) bubble.append(el('p', 'small', '轻点信笺，翻下一张'));
   if (demoMode && !oauth.status?.authorized) bubble.append(el('p', 'small', '预览模式 · 示例账号的真实收藏'));
-  // 记下了还没送出去的信：气泡里明确说清，并给一个"下次出门"的入口
-  // （明信片这一屏原来没有回到"出门"的路）
-  if (invited.size > 0 && !lettersDelivered) {
-    bubble.append(el('p', 'small', `收好了 ${invited.size} 封信。下次出门替你带过去。`));
-    bubble.append(button('让它再出门一趟', 'btn quiet', goOut));
+  // 气泡里如实回报进展：写好了几封、寄出了几封
+  if (sent.size > 0) {
+    bubble.append(el('p', 'small', `已寄出 ${sent.size} 封，等回音。`));
+  } else if (invited.size > 0) {
+    bubble.append(el('p', 'small', `信我写好了 ${invited.size} 封。你看看，行就发。`));
   }
   view.append(bubble);
 
@@ -265,8 +264,8 @@ function postcard(card) {
   }));
 
   const isInvited = invited.has(card.urlToken);
-  // 已记下的用弱化样式：它是个状态，不该看起来还像可以点的按钮
-  acts.append(button(isInvited ? '已记下' : '想认识', isInvited ? 'btn quiet' : 'btn', () => {
+  // 读过信的用弱化样式：它是个状态，不该看起来还像可以点的按钮
+  acts.append(button(isInvited ? '信已备好' : '想认识', isInvited ? 'btn quiet' : 'btn', () => {
     if (invited.has(card.urlToken)) return;
     invited.add(card.urlToken);
     localStorage.setItem('kanshan.invited', JSON.stringify([...invited]));
@@ -330,13 +329,28 @@ function detail(card) {
 
 function letter(card) {
   const box = el('div', 'detail');
-  // 送出去之前和之后说的话不一样：先「下次带过去」，送出后才「压在门口了」
-  box.append(el('div', 'line', lettersDelivered
-    ? '「信我压在门口了。没有敲门 —— 你说你不好意思。」'
-    : '「这封信，下次出门我替你带过去。」'));
+  const isSent = sent.has(card.urlToken);
+
+  if (isSent) {
+    box.append(el('div', 'line', '「信我压在门口了。没有敲门 —— 你说你不好意思。」'));
+    box.append(el('div', 'caveat',
+      '※ 演示环境的「发送」没有接通（开放平台只读，没有私信接口）。这封信已经为你准备好，可以直接复制去发。在真实生态里，它由看山送到对方门口，对方的主人同意之后才会继续。'));
+  } else {
+    box.append(el('div', 'line', '「信我替你写好了。你看看，觉得行就发出去。」'));
+  }
+
   if (card.invite) {
     box.append(el('pre', 'pre', card.invite));
-    box.append(button('复制这封信', 'btn quiet', async (event) => {
+    const row = el('div', 'letter-acts');
+    if (!isSent) {
+      row.append(button('发送邀请', 'btn', () => {
+        sent.add(card.urlToken);
+        localStorage.setItem('kanshan.sent', JSON.stringify([...sent]));
+        scrollCardToEnd = true;
+        render();
+      }));
+    }
+    row.append(button('复制这封信', 'btn quiet', async (event) => {
       try {
         await navigator.clipboard.writeText(card.invite);
         event.target.textContent = '已复制';
@@ -344,6 +358,7 @@ function letter(card) {
         event.target.textContent = '请手动选中复制';
       }
     }));
+    box.append(row);
   }
   return box;
 }

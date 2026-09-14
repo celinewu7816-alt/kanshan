@@ -251,6 +251,13 @@ body {
   color: var(--text-secondary);
 }
 
+/* 邀请信下面的动作：发送 / 复制 */
+.letter-acts {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 .postcard .acts {
   display: flex;
   gap: 10px;
