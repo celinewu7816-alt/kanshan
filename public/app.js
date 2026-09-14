@@ -1,11 +1,13 @@
 /* ==========================================================================
    看山 · 会饿的知乎代理  —  前端
    设计原则：
-     1) 一屏一态、不滚动。看山在屋子里，出门，回来，说话。
-     2) 数据全部来自 /data/story.json（离线用 zhihu-cli 抓真实数据生成）。
-     3) CSP 是 style-src 'self' / script-src 'self'：
-        不用内联 style 属性，也不用内联事件处理器，全部走 addEventListener。
-     4) 网址后加 ?grid=1 会叠一层 10% 调试网格，用来报坐标调看山站位。
+     1) 屋子（#stage）就是整个界面：尺寸按房间图（1408:768）锁定并收进视口，
+        所有零件都绝对定位在它之内，不会有东西跑到屋子外面，也不出现滚动。
+     2) 一屏一态：在屋 → 出门 → 收信笺。看山说话用对话框（像 AVG）。
+     3) 数据来自 /data/story.json（离线用 zhihu-cli 抓真实数据生成）。
+     4) CSP 是 style-src 'self' / script-src 'self'：不用内联 style 属性，
+        也不用内联事件处理器，全部 addEventListener。
+     5) 网址后加 ?grid=1 叠 10% 调试网格；?demo=1 跳过登录直接预览。
    ========================================================================== */
 
 const PET_IMG = {
@@ -16,6 +18,7 @@ const PET_IMG = {
 };
 
 const stage = document.getElementById('stage');
+const view = document.getElementById('view');       // 屋子框架里放内容的那一层
 const dock = document.getElementById('dock');
 const whoBtn = document.getElementById('who');
 const panelToggle = document.getElementById('panel-toggle');
@@ -24,13 +27,13 @@ const panelSummary = document.getElementById('panel-summary');
 const panelGrid = document.getElementById('panel-grid');
 
 const showGrid = new URLSearchParams(window.location.search).get('grid') === '1';
-// ?demo=1 预览模式：跳过登录直接看明信片。用于本地调视觉、录演示视频，
+// ?demo=1 预览模式：跳过登录直接看。用于本地调视觉、录演示视频，
 // 以及没有知乎账号的访客也能看到产品长什么样（会标注是示例账号的收藏）。
 const demoMode = new URLSearchParams(window.location.search).get('demo') === '1';
 
 let story = null;
 let oauth = { status: null, profile: null };
-let view = 'loading';
+let screen = 'loading';                              // 当前是哪一屏
 let groupIndex = 0;
 let cardIndex = 0;
 let openDetail = false;
@@ -60,103 +63,98 @@ function say(lines, hush) {
   return box;
 }
 
-function clearStage() { stage.replaceChildren(); }
+function clearView() { view.replaceChildren(); }
 
-/* ---------- 屋子 ---------- */
+/* ---------- 在屋子里摆看山 ---------- */
 // petKind: 'sleepy' | 'standby' | 'wander' | null（null = 屋子空着）
-function room(petKind, extraClass, note) {
-  const box = el('div', 'room');
-
-  const bg = el('img', 'room-bg');
-  bg.src = story?.room?.image || '/room.jpg';
-  bg.alt = '';
-  box.append(bg);
-
+// 房间图由 index.html 铺在底层，这里只追加角色与叠加层。
+function paintRoom(petKind, extraClass, note) {
   if (petKind) {
     const pet = el('img', `pet ${extraClass || ''}`);
     pet.src = PET_IMG[petKind];
     pet.alt = '看山';
     pet.addEventListener('error', () => pet.remove());
-    box.append(pet);
+    view.append(pet);
   }
-  if (note) box.append(el('div', 'room-empty-note', note));
+  if (note) view.append(el('div', 'room-empty-note', note));
 
   if (showGrid) {
-    box.append(el('div', 'grid-overlay'));
-    box.append(el('div', 'grid-hint', '调试网格：每格 10%。看山站着 (30%, 80%)，门在 (80%, 80%)'));
+    view.append(el('div', 'grid-overlay'));
+    view.append(el('div', 'grid-hint', '调试网格：每格 10%。看山站着 (30%, 80%)，门在 (80%, 80%)'));
   }
-  return box;
 }
 
 /* ---------- 视图：加载中 ---------- */
 function renderLoading() {
-  clearStage();
-  stage.append(room('sleepy'), el('p', 'caption', '……'));
+  clearView();
+  paintRoom('sleepy');
+  view.append(el('p', 'say', '……'));
 }
 
 /* ---------- 视图：还没登录 ---------- */
 function renderGate() {
-  clearStage();
+  clearView();
   const ready = Boolean(oauth.status?.callbackConfigured);
 
-  stage.append(room('sleepy'));
-  stage.append(say(['我还不认识你。'], ready ? '用知乎账号登录，我才翻得到你的收藏。' : '我还出不了门。'));
+  paintRoom('sleepy');
+  view.append(say(['我还不认识你。'], ready ? '用知乎账号登录，我才翻得到你的收藏。' : '我还出不了门。'));
+
+  if (!ready) {
+    view.append(el('div', 'view-notes', '部署到公网、配好回调地址之后，这里才会亮起来。'));
+  } else if (oauth.status?.error) {
+    view.append(el('div', 'view-notes', `上次有点问题：${oauth.status.error.message}`));
+  }
 
   const login = button('用知乎账号登录', 'btn', () => {
     if (ready) window.location.assign('/api/oauth/start');
   });
-  if (!ready) {
-    login.disabled = true;
-    stage.append(say([], '部署到公网、配好回调地址之后，这里才会亮起来。'));
-  }
-  stage.append(login);
-
-  if (oauth.status?.error) {
-    stage.append(el('p', 'caption', `上次有点问题：${oauth.status.error.message}`));
-  }
+  if (!ready) login.disabled = true;
+  view.append(login);
 }
 
 /* ---------- 视图：在家 ---------- */
 function renderHome() {
-  clearStage();
-  if (demoMode && !oauth.status?.authorized) {
-    stage.append(el('p', 'caption', '预览模式 · 下面是示例账号的真实收藏'));
-  }
+  clearView();
   const name = oauth.profile?.name;
-  stage.append(room('standby'));
-  stage.append(say(story?.pet?.wake ?? ['我认得你。'], name ? `${name}，我翻了你的收藏。` : null));
-  stage.append(button('让它出门', 'btn', goOut));
+
+  paintRoom('standby');
+  view.append(say(story?.pet?.wake ?? ['我认得你。'], name ? `${name}，我翻了你的收藏。` : null));
+
+  if (demoMode && !oauth.status?.authorized) {
+    view.append(el('div', 'view-notes', '预览模式 · 下面是示例账号的真实收藏'));
+  }
+  view.append(button('让它出门', 'btn', goOut));
 }
 
 /* ---------- 视图：出门中 ---------- */
 function renderOut() {
-  clearStage();
-  stage.append(room('wander', 'walking'));
-  stage.append(el('p', 'caption', '出门了'));
+  clearView();
+  paintRoom('wander', 'walking');
+  view.append(el('p', 'say', '出门了'));
 
   window.setTimeout(() => {
-    clearStage();
-    stage.append(room(null, null, '屋子里空着'));
-    window.setTimeout(() => { view = 'cards'; render(); }, 2000);
+    clearView();
+    paintRoom(null, null, '屋子里空着');
+    window.setTimeout(() => { screen = 'cards'; render(); }, 2000);
   }, 1500);
 }
 
-/* ---------- 视图：明信片（两组） ---------- */
+/* ---------- 视图：信笺（两组） ---------- */
 function currentGroup() { return story?.groups?.[groupIndex]; }
 
 function renderCards() {
-  clearStage();
+  clearView();
   const group = currentGroup();
   const cards = group?.cards ?? [];
   const card = cards[cardIndex];
   if (!card) return renderDone();
 
-  if ((story?.groups?.length ?? 0) > 1) stage.append(tabs());
+  paintRoom('standby');
 
-  /* 信笺浮在屋子画面上。后面垫两张叠牌，暗示"还有下一张"。 */
-  const scene = el('div', 'scene');
-  scene.append(room('standby'));
+  /* 分组标签压在画面顶部 */
+  if ((story?.groups?.length ?? 0) > 1) view.append(tabs());
 
+  /* 信笺浮在画面上，后面垫两张叠牌暗示"还有下一张" */
   const layer = el('div', 'postcard-layer');
   if (openDetail) layer.classList.add('wide');
   if (cards.length > 1) {
@@ -164,18 +162,15 @@ function renderCards() {
     layer.append(el('div', 'ghost-card g1'));
   }
   layer.append(postcard(card));
-  scene.append(layer);
-  scene.append(nav(cards.length));
+  view.append(layer);
+  view.append(nav(cards.length));
 
-  stage.append(scene);
-
-  if (cards.length > 1 && !openDetail) {
-    stage.append(el('p', 'caption', '轻点信笺，看下一张'));
-  }
-  if (group?.note) stage.append(el('p', 'group-note', group.note));
-  if (demoMode && !oauth.status?.authorized) {
-    stage.append(el('p', 'caption', '预览模式 · 下面是示例账号的真实收藏'));
-  }
+  /* 底部说明文字叠成一小摞，留在屋子之内 */
+  const notes = el('div', 'view-notes');
+  if (cards.length > 1 && !openDetail) notes.append(el('p', 'caption', '轻点信笺，看下一张'));
+  if (group?.note) notes.append(el('p', 'group-note', group.note));
+  if (demoMode && !oauth.status?.authorized) notes.append(el('p', 'caption', '预览模式 · 下面是示例账号的真实收藏'));
+  if (notes.childElementCount) view.append(notes);
 }
 
 function tabs() {
@@ -336,26 +331,26 @@ function nav(total) {
 }
 
 function renderDone() {
-  clearStage();
-  stage.append(room('standby'));
-  stage.append(say(story?.summary ?? ['看完了。']));
-  stage.append(button('再看一遍', 'btn', () => {
-    groupIndex = 0; cardIndex = 0; openDetail = false; view = 'cards'; render();
+  clearView();
+  paintRoom('standby');
+  view.append(say(story?.summary ?? ['看完了。']));
+  view.append(button('再看一遍', 'btn', () => {
+    groupIndex = 0; cardIndex = 0; openDetail = false; screen = 'cards'; render();
   }));
 }
 
-function goOut() { view = 'out'; render(); }
+function goOut() { screen = 'out'; render(); }
 
 function render() {
-  if (view === 'loading') return renderLoading();
-  if (view === 'out') return renderOut();
-  if (view === 'cards') return renderCards();
+  if (screen === 'loading') return renderLoading();
+  if (screen === 'out') return renderOut();
+  if (screen === 'cards') return renderCards();
   if (oauth.status?.authorized || demoMode) return renderHome();
   return renderGate();
 }
 
 /* ---------- 运行记录面板（OAuth 五项接口验收） ---------- */
-function card(definition) {
+function panelCard(definition) {
   let node = panelGrid.querySelector(`[data-id="${definition.id}"]`);
   if (node) return node;
   node = el('article');
@@ -372,7 +367,7 @@ function card(definition) {
 }
 
 function renderResult(result) {
-  const node = card(result);
+  const node = panelCard(result);
   const state = node.querySelector('.state');
   state.textContent = result.status === 'success' ? '成功' : result.status === 'empty' ? '空数据' : '失败';
   state.className = `state ${result.status}`;
@@ -423,7 +418,7 @@ async function boot() {
     const status = await statusResponse.json();
     oauth.status = status;
     oauth.profile = status.profile ?? null;
-    if (status.interfaces) status.interfaces.forEach(card);
+    if (status.interfaces) status.interfaces.forEach(panelCard);
 
     if (status.authorized) {
       whoBtn.textContent = status.profile?.name || '已授权的知乎账号';
@@ -432,11 +427,11 @@ async function boot() {
       dock.hidden = false;
       await runAll();
     }
-    view = 'home';
+    screen = 'home';
     render();
   } catch (error) {
-    clearStage();
-    stage.append(el('p', 'caption', `启动失败：${error.message}`));
+    clearView();
+    view.append(el('p', 'say', `启动失败：${error.message}`));
   }
 }
 

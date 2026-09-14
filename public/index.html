@@ -8,26 +8,36 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <!-- 注意：server.mjs 的 CSP 是 style-src 'self'，内联 style 属性会被拦，样式全走 styles.css -->
-    <main id="stage" class="stage"></main>
+    <!--
+      #stage 就是「屋子」，同时也是整个界面：
+      尺寸按房间图的宽高比（1408:768）锁定，并收缩到不超出视口，
+      所以它永远完整地铺满可视区，不会出现滚动条。
+      所有零件（看山、信笺、翻页点、对话框、运行记录）都绝对定位在它之内，
+      不会有任何东西跑到屋子外面。
+      注意：CSP 是 style-src 'self'，内联样式会被拦，样式全走 styles.css。
+    -->
+    <main id="stage" class="stage">
+      <img id="room-bg" class="room-bg" src="/room.jpg" alt="" />
+      <div id="view" class="view"></div>
 
-    <div id="dock" class="dock" hidden>
-      <button id="who" class="ghost" type="button"></button>
-      <button id="panel-toggle" class="ghost" type="button">运行记录</button>
-    </div>
+      <div id="dock" class="dock" hidden>
+        <button id="who" class="ghost" type="button"></button>
+        <button id="panel-toggle" class="ghost" type="button">运行记录</button>
+      </div>
 
-    <section id="panel" class="panel" hidden>
-      <div class="panel-head">
-        <strong>OAuth 用户接口运行记录</strong>
-        <button id="panel-close" class="ghost" type="button">收起</button>
-      </div>
-      <p id="panel-summary" class="panel-summary">尚未运行</p>
-      <div id="panel-grid" class="panel-grid"></div>
-      <div class="panel-actions">
-        <button id="run-all" class="ghost" type="button">再跑一次</button>
-        <button id="logout" class="ghost danger" type="button">退出登录</button>
-      </div>
-    </section>
+      <section id="panel" class="panel" hidden>
+        <div class="panel-head">
+          <strong>OAuth 用户接口运行记录</strong>
+          <button id="panel-close" class="ghost" type="button">收起</button>
+        </div>
+        <p id="panel-summary" class="panel-summary">尚未运行</p>
+        <div id="panel-grid" class="panel-grid"></div>
+        <div class="panel-actions">
+          <button id="run-all" class="ghost" type="button">再跑一次</button>
+          <button id="logout" class="ghost danger" type="button">退出登录</button>
+        </div>
+      </section>
+    </main>
 
     <script type="module" src="/app.js"></script>
   </body>

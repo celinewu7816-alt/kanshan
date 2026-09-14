@@ -27,6 +27,11 @@ html, body { min-height: 100%; }
 
 body {
   margin: 0;
+  /* 屋子框架居中放，页面本身不滚动 */
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  overflow: hidden;
   background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
   background-attachment: fixed;
   color: var(--ink);
@@ -37,17 +42,30 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── 舞台：一屏一态，不滚动 ───────────────────────────── */
+/* ── 舞台 = 屋子 = 整个界面 ────────────────────────────
+   尺寸按房间图（1408:768）锁定，同时收进视口：宽度取「视口宽」与
+   「视口高 × 1.8333」的较小值，于是高度必然 ≤ 视口高 —— 永远不出现滚动条。
+   所有零件都绝对定位在它之内，没有任何东西会跑到屋子外面。 */
 .stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 30px;
-  min-height: 100vh;
-  padding: 56px 24px 104px;
+  position: relative;
+  width: min(100vw, calc(100vh * 1.8333));
+  aspect-ratio: 1.8333;
+  margin: 0 auto;
+  overflow: hidden;
   text-align: center;
 }
+
+/* 房间图铺满整个框架 */
+.room-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 每一屏的内容都放在这里，重绘时只换它，背景图不动 */
+.view { position: absolute; inset: 0; }
 
 /* ── 看山 ────────────────────────────────────────────── */
 .pet {
@@ -366,7 +384,7 @@ body {
    对着 ?grid=1 的网格就能报出数字来调。
    站位 (30%, 80%)，门在 (80%, 80%) —— 两点 y 相同，说明是同一深度
    横向走，所以走路动画里不改变大小（缩放会显得像往远处走了）。 */
-.room .pet {
+.view .pet {
   position: absolute;
   left: 30%;
   top: 80%;
@@ -376,7 +394,7 @@ body {
 }
 
 /* 出门：横走到门口，靠近门时淡出 */
-.room .pet.walking {
+.view .pet.walking {
   animation: walk-out 1.7s cubic-bezier(0.45, 0, 0.85, 0.55) forwards;
 }
 @keyframes walk-out {
@@ -386,7 +404,7 @@ body {
 }
 
 /* 回来：在门口现身，然后一路横走进屋（不是半路才淡入） */
-.room .pet.entering {
+.view .pet.entering {
   animation: walk-in 1.5s cubic-bezier(0.25, 0.9, 0.35, 1) both;
 }
 @keyframes walk-in {
@@ -546,8 +564,96 @@ body {
 .postcard .basis b { color: var(--text-secondary); font-weight: 600; }
 
 @media (max-width: 480px) {
-  .stage { padding: 40px 18px 96px; gap: 24px; }
-  .pet { width: 164px; height: 164px; }
   .say { font-size: 17px; }
-  .room { border-radius: 14px; }
+}
+
+/* ══ 框架内定位层 ══════════════════════════════════════════════════
+   屋子是固定尺寸的框架（见上面的 .stage），所以这里所有零件都用绝对定位
+   压在画面里，不再让文档流把它们排出画面外。
+   ═════════════════════════════════════════════════════════════════ */
+
+/* 对话框：像 AVG 那样压在画面底部，给文字一个可读的底 */
+.view .say {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: none;
+  margin: 0;
+  padding: 42px 30px 78px;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(
+    180deg, rgba(16, 20, 26, 0) 0%, rgba(16, 20, 26, 0.4) 46%, rgba(16, 20, 26, 0.6) 100%);
+}
+.view .say .hush { color: rgba(255, 255, 255, 0.82); }
+
+/* 主按钮：对话框下方居中（用 left/right + margin auto 居中，
+   不能用 transform —— 会和各处 fade-up 动画里的 transform 打架） */
+.view > .btn {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 24px;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+/* 分组标签：压在画面顶部 */
+.view > .tabs {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 14px;
+  margin: 0;
+}
+
+/* 底部说明文字（翻页提示 / 分组说明 / 预览模式标注）：叠成一小摞，
+   压在进度点上方，全部留在屋子之内 */
+.view-notes {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 0 20px;
+}
+.view-notes .caption,
+.view-notes .group-note {
+  position: static;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+}
+
+/* 进度点压在画面最底部 */
+.deck-nav { bottom: 16px; }
+
+/* 登录名 / 运行记录：画面右上角的小药丸 */
+.dock {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  left: auto;
+  bottom: auto;
+  padding: 0;
+  background: none;
+}
+.dock .ghost {
+  color: #fff;
+  background: rgba(16, 20, 26, 0.34);
+  border-radius: 999px;
+  padding: 5px 12px;
+}
+.dock .ghost:hover { background: rgba(16, 20, 26, 0.52); color: #fff; }
+
+/* 运行记录：贴框架底部的抽屉，最高占画面 72%，不会顶出屋子 */
+.panel {
+  position: absolute;
+  inset: auto 0 0 0;
+  max-height: 72%;
+  overflow: auto;
 }
