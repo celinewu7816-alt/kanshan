@@ -284,12 +284,10 @@ body {
 /* 未展开时可以轻点翻下一张 */
 .postcard.can-flip { cursor: pointer; }
 
-/* 展开区：横向排成几栏，控制高度，不超出画面 */
-.detail .cols {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 14px;
-}
+/* 展开区：竖着排（当年 → 后来 → 看山的判断），用分隔线断开 */
+.detail .cols { display: block; }
+.detail .col { padding: 10px 0; border-top: 1px dashed rgba(140, 118, 82, 0.28); }
+.detail .col:first-child { border-top: 0; padding-top: 0; }
 .detail .col-label {
   font-size: 11px;
   letter-spacing: 0.06em;
@@ -420,20 +418,28 @@ body {
   max-width: 660px;
   margin: 0 auto;
 }
-/* 信笺层：绝对定位浮在屋子画面上，不被 .room 的 overflow 裁掉，
-   所以展开后的内容可以自然溢出到画面外。 */
+/* 信笺层：给它明确的上下边界（top/bottom 同时定），所以无论怎么展开都
+   不可能超出屋子。展开时长高由卡片自己内部滚动承接。 */
 .postcard-layer {
   position: absolute;
   left: 41%;
   right: 3%;
-  top: 5%;
+  top: 15%;
+  bottom: 11%;
+  display: flex;
+  align-items: flex-start;
   pointer-events: none;
-  transition: left 0.42s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 .postcard-layer > * { pointer-events: auto; }
-/* 展开时向左侧铺开（横向），不是往下长 —— 保证不超出屋子画面 */
-.postcard-layer.wide { left: 3%; }
-.postcard-layer.wide > .ghost-card { pointer-events: none; }
+
+/* 叠牌与信笺共用一个盒子，叠牌才能跟着卡片的高度走 */
+.stack {
+  position: relative;
+  width: 100%;
+  max-height: 100%;
+  display: flex;
+}
+.stack > .postcard { width: 100%; max-height: 100%; overflow: auto; }
 
 /* 信笺下面露出的两张叠牌，暗示"后面还有" */
 .ghost-card {
@@ -627,6 +633,43 @@ body {
   margin: 0;
   color: rgba(255, 255, 255, 0.9);
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+}
+
+/* ── 看山的对话气泡 ──────────────────────────────────
+   说明文字不再堆在画面底部，改成看山说的话，挂在它头顶上方。 */
+.pet-bubble {
+  position: absolute;
+  left: 4%;
+  bottom: 55%;
+  max-width: 36%;
+  padding: 11px 15px 13px;
+  text-align: left;
+  color: #3a332a;
+  font-size: 13px;
+  line-height: 1.7;
+  background: #fffdf7;
+  border: 1px solid rgba(140, 118, 82, 0.26);
+  border-radius: 15px 15px 15px 4px;
+  box-shadow: 0 10px 26px rgba(28, 20, 6, 0.2);
+  animation: card-pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+/* 小尾巴，指向下面的看山 */
+.pet-bubble::after {
+  content: "";
+  position: absolute;
+  left: 58%;
+  bottom: -9px;
+  width: 0;
+  height: 0;
+  border: 9px solid transparent;
+  border-top-color: #fffdf7;
+  border-bottom: 0;
+}
+.pet-bubble p { margin: 0; }
+.pet-bubble .small {
+  margin-top: 5px;
+  font-size: 12px;
+  color: rgba(120, 100, 70, 0.9);
 }
 
 /* 进度点压在画面最底部 */

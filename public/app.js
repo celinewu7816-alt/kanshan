@@ -154,23 +154,25 @@ function renderCards() {
   /* 分组标签压在画面顶部 */
   if ((story?.groups?.length ?? 0) > 1) view.append(tabs());
 
-  /* 信笺浮在画面上，后面垫两张叠牌暗示"还有下一张" */
+  /* 信笺浮在画面上，后面垫两张叠牌暗示"还有下一张"。
+     叠牌要和卡片同一个盒子，这样卡片长高时叠牌跟着走。 */
   const layer = el('div', 'postcard-layer');
-  if (openDetail) layer.classList.add('wide');
+  const stack = el('div', 'stack');
   if (cards.length > 1) {
-    layer.append(el('div', 'ghost-card g2'));
-    layer.append(el('div', 'ghost-card g1'));
+    stack.append(el('div', 'ghost-card g2'));
+    stack.append(el('div', 'ghost-card g1'));
   }
-  layer.append(postcard(card));
+  stack.append(postcard(card));
+  layer.append(stack);
   view.append(layer);
   view.append(nav(cards.length));
 
-  /* 底部说明文字叠成一小摞，留在屋子之内 */
-  const notes = el('div', 'view-notes');
-  if (cards.length > 1 && !openDetail) notes.append(el('p', 'caption', '轻点信笺，看下一张'));
-  if (group?.note) notes.append(el('p', 'group-note', group.note));
-  if (demoMode && !oauth.status?.authorized) notes.append(el('p', 'caption', '预览模式 · 下面是示例账号的真实收藏'));
-  if (notes.childElementCount) view.append(notes);
+  /* 说明文字不再堆在画面底部，改成看山说的话（挂在它头顶的气泡里） */
+  const bubble = el('div', 'pet-bubble');
+  if (group?.note) bubble.append(el('p', null, group.note));
+  if (cards.length > 1 && !openDetail) bubble.append(el('p', 'small', '轻点信笺，翻下一张'));
+  if (demoMode && !oauth.status?.authorized) bubble.append(el('p', 'small', '预览模式 · 示例账号的真实收藏'));
+  view.append(bubble);
 }
 
 function tabs() {
