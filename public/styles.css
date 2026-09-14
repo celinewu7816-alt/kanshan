@@ -251,12 +251,30 @@ body {
   color: var(--text-secondary);
 }
 
-/* 邀请信下面的动作：发送 / 复制 */
+/* 邀请信下面的动作：发送 / 复制。信笺是暖色纸，按钮跟着走暖色，
+   并且比主按钮小一号 —— 信是主角，按钮不该压过它。 */
 .letter-acts {
   display: flex;
   gap: 8px;
   margin-top: 10px;
 }
+.letter-acts .btn {
+  padding: 7px 15px;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: #6b5a3e;
+  color: #fffdf5;
+  box-shadow: none;
+  animation: none;
+}
+.letter-acts .btn:hover { background: #5b4c33; box-shadow: none; }
+/* 复制这封信：描边，让位给「发送邀请」 */
+.letter-acts .btn.quiet {
+  background: transparent;
+  color: #6b5a3e;
+  border: 1px solid rgba(107, 90, 62, 0.45);
+}
+.letter-acts .btn.quiet:hover { background: rgba(107, 90, 62, 0.08); color: #4d4030; box-shadow: none; }
 
 .postcard .acts {
   display: flex;
