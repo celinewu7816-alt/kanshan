@@ -638,8 +638,8 @@ body {
   padding: 11px 15px 13px;
   text-align: left;
   color: #3a332a;
-  font-size: 13px;
-  line-height: 1.7;
+  font-size: 15px;
+  line-height: 1.72;
   background: #fffdf7;
   border: 1px solid rgba(140, 118, 82, 0.26);
   border-radius: 15px 15px 15px 4px;
@@ -661,7 +661,7 @@ body {
 .pet-bubble p { margin: 0; }
 .pet-bubble .small {
   margin-top: 5px;
-  font-size: 12px;
+  font-size: 13.5px;
   color: rgba(120, 100, 70, 0.9);
 }
 

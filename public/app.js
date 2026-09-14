@@ -179,11 +179,15 @@ function renderCards() {
   if (entry.group.note) bubble.append(el('p', null, entry.group.note));
   if (cards.length > 1 && !open) bubble.append(el('p', 'small', '轻点信笺，翻下一张'));
   if (!oauth.status?.authorized) bubble.append(el('p', 'small', '示例账号的真实收藏'));
-  // 气泡里如实回报进展：写好了几封、寄出了几封
-  if (sent.size > 0) {
-    bubble.append(el('p', 'small', `已寄出 ${sent.size} 封，等回音。`));
-  } else if (invited.size > 0) {
-    bubble.append(el('p', 'small', `信我写好了 ${invited.size} 封。你看看，行就发。`));
+  // 回报进展：按「这一趟带回来的信」来数，免得跟你眼前看到的张数对不上。
+  // （invited / sent 是跨趟累计的，直接报 size 会出现"看到 6 张却说 5 封"。）
+  const carried = tripGroups().flatMap((item) => item.cards);
+  const written = carried.filter((item) => invited.has(item.urlToken)).length;
+  const mailed = carried.filter((item) => sent.has(item.urlToken)).length;
+  if (mailed > 0) {
+    bubble.append(el('p', 'small', `这 ${carried.length} 封里，已寄出 ${mailed} 封，等回音。`));
+  } else if (written > 0) {
+    bubble.append(el('p', 'small', `这 ${carried.length} 封里，我替你写好了 ${written} 封 —— 你看看，行就发。`));
   }
   view.append(bubble);
 
