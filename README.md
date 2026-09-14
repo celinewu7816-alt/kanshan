@@ -1,25 +1,97 @@
-# 看山
+# 看山 · 会饿的知乎代理
 
-知乎账号 OAuth Hello World。
+知乎黑客松 2026｜校园新锐季　·　赛道：**灵魂匹配局**　·　单人作品
 
-本地地址只能预览页面，无法完成知乎登录。请先部署到 Cloudflare、Sealos 等在线平台，再将下面的公网回调地址登记到知乎开放平台：
+> 知乎只有向前的推荐流，没有向后的重逢。
+> 看山，就是那只往后跑的宠物。
 
-```text
-部署后配置
-```
+**在线体验：** <https://kanshan-313068-9-1487135548.sh.run.tcloudbase.com/>
+
+---
+
+## 它是什么
+
+养一只由你自己的知乎数据长出来的看山。点一次「让它出门」，它替你去拜访你曾经收藏过、关注过的人，回来带几张**明信片** —— 一张明信片 = 一位你曾经在意过的人，每张只有一句话：
+
+| 谁 | 那一句话 |
+|---|---|
+| 东风（2021 年你收藏过 TA 讲作文那篇） | 「五年了，还在写作文。」 |
+| 墨泉流向地平线（你收藏了 TA 两篇数分习题解答） | 「还在做题。没什么人看，也还在做。」 |
+| 韩老九（2021 年你收藏过 TA 讲「戒掉手机」那篇） | 「从『戒掉手机』写到『为人处世』。」 |
+
+每张可以「展开」看**当年 / 后来 / 看山的判断**；点「想认识」，看山会把替你写好的邀请信展开给你看。
+
+**每次出门带回来「你认识的人」与「你可能想认识的人」各三封**；下一趟带还没带过的那批，全部看完了再从头开始。
+
+## 本地运行
+
+零依赖（`package.json` 里没有 `dependencies`），只要有 Node ≥ 22：
 
 ```bash
-npm test
-npm run check
-npm start
+npm start      # http://127.0.0.1:4173/
+npm run check  # 语法检查
+npm test       # 配置与接口覆盖测试
 ```
 
-打开 <http://127.0.0.1:4173/> 预览页面。如果回调地址显示“部署后配置”，请在部署完成后运行 `zhihu-hackathon` Skill 提供的 `configure_callback.mjs`。只有部署后的公网页面可以测试授权，最终确认必须由用户本人完成。
+> 本地只能**看页面**。知乎登录必须在**公网地址**上完成 —— 回调地址需要登记在知乎开放平台，且必须是公网 HTTPS。
 
-## 安全与清理
+## 目录
 
-- 本地预览时，app_key 在项目专用 macOS 钥匙串条目中。
-- 部署时，app_key 和 Access Secret 使用平台的 Secret/环境变量功能配置为 `ZHIHU_OAUTH_APP_KEY` 和 `ZHIHU_ACCESS_SECRET`，不要写进代码包。
-- Access Secret 由项目级官方 `.codex/skills/zhihu` 管理。
-- OAuth Token 只在服务内存中，重启即清除。
-- 测试结束先按 `zhihu-hackathon` Skill 清除 app_key，再按官方 Skill 清除 Access Secret，最后删除整个项目。
+```
+server.mjs               Node 服务：静态文件 + OAuth 路由 + 五项用户数据接口
+lib/oauth.mjs            OAuth 管道（authorize → callback → token → X-OAuth-Token）
+hackathon.config.json    公开配置（App ID、凭证来源名；不含任何密钥）
+Dockerfile               常驻容器的镜像定义（会话存进程内存，Serverless 会丢）
+public/index.html        屋子框架（#stage / #room-bg / #view / #dock / #panel）
+public/styles.css        全部样式（CSP 禁内联样式，样式只走这里）
+public/app.js            一屏三态 + 信笺 + 邀请信 + 运行记录面板
+public/data/story.json   ← 全部真实数据的快照，见下
+public/room.jpg          房间背景（1408×768，整个界面的尺寸按它锁定）
+tools/                   离线数据管线用的小工具
+tests/                   配置与接口覆盖测试
+```
+
+## 数据是怎么来的
+
+`public/data/story.json` 里的每一条都不是编的，是**离线跑一遍真实抓取**生成的（`tools/` 就是干这个的）：
+
+1. `zhihu-cli me favorites` / `me followees` —— 取「你收藏过谁、关注了谁」；
+2. 对每位候选作者，`zhihu-cli search zhihu` —— 召回 TA 后来的内容；
+3. **按 `AuthorSignature` 精确过滤** —— 这个字段就是作者的 `UrlToken`。搜索是按相关性召回的，会混入同名文本命中的无关内容，所以必须精确匹配；
+4. **召回 0 条的一律不写进数据** —— 因为无法区分「作者停更」与「搜索索引未覆盖」。
+
+三个小工具：
+
+| 工具 | 用途 |
+|---|---|
+| `tools/extract-search.mjs` | 已知作者，验证「搜索能不能召回 TA」 |
+| `tools/list-authors.mjs` | 不知道有谁，反查一个话题下有哪些作者 |
+| `tools/summarize-favorites.mjs` | 把收藏原始输出摘成紧凑表（挑候选作者用） |
+
+## 用了哪些知乎开放能力
+
+**账号接入（OAuth）**：`GET /authorize` → `GET /auth/callback` → `POST /access_token` → `GET /user`；之后代表授权用户调用下面五项用户数据接口，请求带 `Authorization: Bearer <Access Secret>` + `X-OAuth-Token` + `X-Request-Timestamp`：
+
+| 接口 | 用途 |
+|---|---|
+| `/api/v1/user/contents` · 我的创作 | 账号基线（"喂"看山的数据量） |
+| `/api/v1/user/followees` · 我的关注 | 「你认识的人」里的关注关系 |
+| `/api/v1/user/favlists` · 收藏夹 | 取收藏夹列表 |
+| `/api/v1/user/favlist_contents` · 收藏内容 | 取收藏夹里的内容 |
+| `/api/v1/user/collections` · 近期收藏 | 「你收藏过什么、谁写的、什么时候」 |
+
+**知乎搜索**：召回作者后来的内容（`AuthorityLevel` / `EditTime` / `Url`）。
+
+登录后，页面右上角「运行记录」里可以逐条看到这五项接口的真实返回。
+
+## 诚实边界
+
+- **数据全部来自真实抓取**：卡片上的时间、赞数、权威等级、链接都是接口原样返回的值。
+- **社区与关系侧的 API 是只读的** —— 没有发布 / 评论 / 关注 / 私信接口。所以**看山不能替你发出任何消息**，最后一步永远由你本人做。界面上「发送邀请」只落本地状态，信可以复制去用，这一点在界面上也如实写明。
+- **「你可能想认识的人」不是实时在线的真人**，而是由公开内容构成的角色；界面与说明里都不暗示它是在线的其他用户。
+- **搜索召回有失败率**：召回 0 条时只说「搜不到」，不推断为「停更」。
+- 在线地址默认展示的是**示例账号**的真实收藏（界面上有标注）。点右上角「用知乎账号登录」可以授权你自己的账号，看这五项接口在你自己账号上跑的结果 —— **登录会话按浏览器隔离**，别人看不到你的。
+
+## 安全
+
+项目里**不含任何密钥**。`ZHIHU_OAUTH_APP_KEY` 与 `ZHIHU_ACCESS_SECRET` 由部署平台的环境变量提供；OAuth Token 只存在服务端内存的会话里，不落地、也不下发到浏览器。
