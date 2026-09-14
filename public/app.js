@@ -41,6 +41,9 @@ let invited = new Set(JSON.parse(localStorage.getItem('kanshan.invited') || '[]'
 // 点过「想认识」的信，要等下一次出门才真的带过去 —— 用这个标记区分
 // 「记下了」和「已经送到了」，避免同一屏里出现两句自相矛盾的话。
 let lettersDelivered = false;
+// 点了「想认识」之后，新出现的信在卡片底部 —— 而卡片是会内部滚动的，
+// 不滚到底就看不见，反馈就"消失"了。用这个标记让这次渲染后自动滚到底。
+let scrollCardToEnd = false;
 
 /* ---------- 小工具 ---------- */
 function el(tag, className, text) {
@@ -177,12 +180,20 @@ function renderCards() {
   if (group?.note) bubble.append(el('p', null, group.note));
   if (cards.length > 1 && !openDetail) bubble.append(el('p', 'small', '轻点信笺，翻下一张'));
   if (demoMode && !oauth.status?.authorized) bubble.append(el('p', 'small', '预览模式 · 示例账号的真实收藏'));
-  // 记下了还没送出去的信，给一个"下次出门"的入口，
-  // 否则在明信片这一屏永远回不到"出门"那一步
+  // 记下了还没送出去的信：气泡里明确说清，并给一个"下次出门"的入口
+  // （明信片这一屏原来没有回到"出门"的路）
   if (invited.size > 0 && !lettersDelivered) {
+    bubble.append(el('p', 'small', `收好了 ${invited.size} 封信。下次出门替你带过去。`));
     bubble.append(button('让它再出门一趟', 'btn quiet', goOut));
   }
   view.append(bubble);
+
+  // 刚点了「想认识」，把卡片滚到底，让新出现的信真的被看见
+  if (scrollCardToEnd) {
+    scrollCardToEnd = false;
+    const sheet = view.querySelector('.postcard');
+    if (sheet) sheet.scrollTop = sheet.scrollHeight;
+  }
 }
 
 function tabs() {
@@ -254,9 +265,12 @@ function postcard(card) {
   }));
 
   const isInvited = invited.has(card.urlToken);
-  acts.append(button(isInvited ? '记下了' : '想认识', 'btn', () => {
+  // 已记下的用弱化样式：它是个状态，不该看起来还像可以点的按钮
+  acts.append(button(isInvited ? '已记下' : '想认识', isInvited ? 'btn quiet' : 'btn', () => {
+    if (invited.has(card.urlToken)) return;
     invited.add(card.urlToken);
     localStorage.setItem('kanshan.invited', JSON.stringify([...invited]));
+    scrollCardToEnd = true;
     render();
   }));
   node.append(acts);
