@@ -628,27 +628,6 @@ body {
   margin: 0;
 }
 
-/* 底部说明文字（翻页提示 / 分组说明 / 预览模式标注）：叠成一小摞，
-   压在进度点上方，全部留在屋子之内 */
-.view-notes {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  padding: 0 20px;
-}
-.view-notes .caption,
-.view-notes .group-note {
-  position: static;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.9);
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
-}
-
 /* ── 看山的对话气泡 ──────────────────────────────────
    说明文字不再堆在画面底部，改成看山说的话，挂在它头顶上方。 */
 .pet-bubble {

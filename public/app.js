@@ -7,7 +7,7 @@
      3) 数据来自 /data/story.json（离线用 zhihu-cli 抓真实数据生成）。
      4) CSP 是 style-src 'self' / script-src 'self'：不用内联 style 属性，
         也不用内联事件处理器，全部 addEventListener。
-     5) 网址后加 ?grid=1 叠 10% 调试网格；?demo=1 跳过登录直接预览。
+     5) 网址后加 ?grid=1 叠 10% 调试网格。
    ========================================================================== */
 
 const PET_IMG = {
@@ -21,15 +21,13 @@ const stage = document.getElementById('stage');
 const view = document.getElementById('view');       // 屋子框架里放内容的那一层
 const dock = document.getElementById('dock');
 const whoBtn = document.getElementById('who');
+const loginBtn = document.getElementById('login');
 const panelToggle = document.getElementById('panel-toggle');
 const panel = document.getElementById('panel');
 const panelSummary = document.getElementById('panel-summary');
 const panelGrid = document.getElementById('panel-grid');
 
 const showGrid = new URLSearchParams(window.location.search).get('grid') === '1';
-// ?demo=1 预览模式：跳过登录直接看。用于本地调视觉、录演示视频，
-// 以及没有知乎账号的访客也能看到产品长什么样（会标注是示例账号的收藏）。
-const demoMode = new URLSearchParams(window.location.search).get('demo') === '1';
 
 let story = null;
 let oauth = { status: null, profile: null };
@@ -98,27 +96,6 @@ function renderLoading() {
   clearView();
   paintRoom('sleepy');
   view.append(el('p', 'say', '……'));
-}
-
-/* ---------- 视图：还没登录 ---------- */
-function renderGate() {
-  clearView();
-  const ready = Boolean(oauth.status?.callbackConfigured);
-
-  paintRoom('sleepy');
-  view.append(say(['我还不认识你。'], ready ? '用知乎账号登录，我才翻得到你的收藏。' : '我还出不了门。'));
-
-  if (!ready) {
-    view.append(el('div', 'view-notes', '部署到公网、配好回调地址之后，这里才会亮起来。'));
-  } else if (oauth.status?.error) {
-    view.append(el('div', 'view-notes', `上次有点问题：${oauth.status.error.message}`));
-  }
-
-  const login = button('用知乎账号登录', 'btn', () => {
-    if (ready) window.location.assign('/api/oauth/start');
-  });
-  if (!ready) login.disabled = true;
-  view.append(login);
 }
 
 /* ---------- 视图：在家 ---------- */
@@ -201,7 +178,7 @@ function renderCards() {
   const bubble = el('div', 'pet-bubble');
   if (entry.group.note) bubble.append(el('p', null, entry.group.note));
   if (cards.length > 1 && !open) bubble.append(el('p', 'small', '轻点信笺，翻下一张'));
-  if (demoMode && !oauth.status?.authorized) bubble.append(el('p', 'small', '预览模式 · 示例账号的真实收藏'));
+  if (!oauth.status?.authorized) bubble.append(el('p', 'small', '示例账号的真实收藏'));
   // 气泡里如实回报进展：写好了几封、寄出了几封
   if (sent.size > 0) {
     bubble.append(el('p', 'small', `已寄出 ${sent.size} 封，等回音。`));
@@ -429,8 +406,7 @@ function render() {
   if (screen === 'loading') return renderLoading();
   if (screen === 'out') return renderOut();
   if (screen === 'cards') return renderCards();
-  if (oauth.status?.authorized || demoMode) return renderHome();
-  return renderGate();
+  return renderHome();
 }
 
 /* ---------- 运行记录面板（OAuth 五项接口验收） ---------- */
@@ -482,6 +458,7 @@ async function runAll() {
 }
 
 /* ---------- 事件接线 ---------- */
+loginBtn.addEventListener('click', () => { window.location.assign('/api/oauth/start'); });
 panelToggle.addEventListener('click', () => { panel.hidden = false; });
 document.getElementById('panel-close').addEventListener('click', () => { panel.hidden = true; });
 document.getElementById('run-all').addEventListener('click', runAll);
@@ -504,11 +481,17 @@ async function boot() {
     oauth.profile = status.profile ?? null;
     if (status.interfaces) status.interfaces.forEach(panelCard);
 
+    // 右上角那撮小药丸：登录入口不挡路，谁都能看到；登录成功后才多出
+    // 「谁」和「运行记录」。这样评委不登录也能把产品从头走完。
+    const canLogin = Boolean(status.callbackConfigured) && !status.authorized;
+    whoBtn.hidden = !status.authorized;
+    panelToggle.hidden = !status.authorized;
+    loginBtn.hidden = !canLogin;
+    if (status.error && canLogin) loginBtn.textContent = '登录失败，重试';
+    dock.hidden = !(status.authorized || canLogin);
+
     if (status.authorized) {
       whoBtn.textContent = status.profile?.name || '已授权的知乎账号';
-      whoBtn.hidden = false;
-      panelToggle.hidden = false;
-      dock.hidden = false;
       await runAll();
     }
     screen = 'home';
