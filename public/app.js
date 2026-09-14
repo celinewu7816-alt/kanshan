@@ -38,6 +38,9 @@ let groupIndex = 0;
 let cardIndex = 0;
 let openDetail = false;
 let invited = new Set(JSON.parse(localStorage.getItem('kanshan.invited') || '[]'));
+// 点过「想认识」的信，要等下一次出门才真的带过去 —— 用这个标记区分
+// 「记下了」和「已经送到了」，避免同一屏里出现两句自相矛盾的话。
+let lettersDelivered = false;
 
 /* ---------- 小工具 ---------- */
 function el(tag, className, text) {
@@ -135,6 +138,8 @@ function renderOut() {
   window.setTimeout(() => {
     clearView();
     paintRoom(null, null, '屋子里空着');
+    // 这一趟走完，之前记下的信才算送出去了
+    lettersDelivered = true;
     window.setTimeout(() => { screen = 'cards'; render(); }, 2000);
   }, 1500);
 }
@@ -172,6 +177,11 @@ function renderCards() {
   if (group?.note) bubble.append(el('p', null, group.note));
   if (cards.length > 1 && !openDetail) bubble.append(el('p', 'small', '轻点信笺，翻下一张'));
   if (demoMode && !oauth.status?.authorized) bubble.append(el('p', 'small', '预览模式 · 示例账号的真实收藏'));
+  // 记下了还没送出去的信，给一个"下次出门"的入口，
+  // 否则在明信片这一屏永远回不到"出门"那一步
+  if (invited.size > 0 && !lettersDelivered) {
+    bubble.append(button('让它再出门一趟', 'btn quiet', goOut));
+  }
   view.append(bubble);
 }
 
@@ -244,7 +254,7 @@ function postcard(card) {
   }));
 
   const isInvited = invited.has(card.urlToken);
-  acts.append(button(isInvited ? '已经记下了' : '想认识', 'btn', () => {
+  acts.append(button(isInvited ? '记下了' : '想认识', 'btn', () => {
     invited.add(card.urlToken);
     localStorage.setItem('kanshan.invited', JSON.stringify([...invited]));
     render();
@@ -306,7 +316,10 @@ function detail(card) {
 
 function letter(card) {
   const box = el('div', 'detail');
-  box.append(el('div', 'line', '「信我压在门口了。没有敲门 —— 你说你不好意思。」'));
+  // 送出去之前和之后说的话不一样：先「下次带过去」，送出后才「压在门口了」
+  box.append(el('div', 'line', lettersDelivered
+    ? '「信我压在门口了。没有敲门 —— 你说你不好意思。」'
+    : '「这封信，下次出门我替你带过去。」'));
   if (card.invite) {
     box.append(el('pre', 'pre', card.invite));
     box.append(button('复制这封信', 'btn quiet', async (event) => {
